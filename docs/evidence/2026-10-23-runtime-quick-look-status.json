@@ -1,0 +1,14 @@
+{
+  "arrowEvents" : 2,
+  "cacheReady" : true,
+  "captureDiagnostic" : "ready",
+  "committed" : 0,
+  "indeterminate" : 0,
+  "lastArrowFlags" : 536870912,
+  "lastCallbackMS" : 0,
+  "lastDecision" : "no-fresh-cache",
+  "maximumCallbackMS" : 0,
+  "message" : "运行中，等待可支持的 Finder 图标视图",
+  "running" : true,
+  "unchanged" : 0
+}

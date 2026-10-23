@@ -1,0 +1,432 @@
+{
+  "calls" : [
+    {
+      "code" : 0,
+      "elapsedMS" : 0.0019167200662195683,
+      "operation" : "setMessagingTimeout"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 32.72562497295439,
+      "operation" : "read:AXMainWindow"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.059416634030640125,
+      "operation" : "read:AXTitle"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.056750024668872356,
+      "operation" : "read:AXFocusedUIElement"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.047541630920022726,
+      "operation" : "read:AXRole"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.029666698537766933,
+      "operation" : "read:AXSubrole"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.030750001315027475,
+      "operation" : "read:AXIdentifier"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.10070833377540112,
+      "operation" : "read:AXWindow"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.028791662771254778,
+      "operation" : "settable:AXSelectedChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.09158335160464048,
+      "operation" : "read:AXSelectedChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.036166689824312925,
+      "operation" : "read:AXVisibleChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.02875004429370165,
+      "operation" : "read:AXSubrole"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.2281250199303031,
+      "operation" : "read:AXVisibleChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.03600004129111767,
+      "operation" : "read:AXRole"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.04474999150261283,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.02141663571819663,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.07712503429502249,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.029541668482124805,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.047833367716521025,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.024499953724443913,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.04475004971027374,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.02412503818050027,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.0479166628792882,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.04520831862464547,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.0447083730250597,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.02883333945646882,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.06549997488036752,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.02804165706038475,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.0330416951328516,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.016833306290209293,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.03754167119041085,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.01658330438658595,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.028749986086040735,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.014874967746436596,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.026333320420235395,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.014999997802078724,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.02645829226821661,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.013708369806408882,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.026083318516612053,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.014125020243227482,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.02800003858283162,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.014208315405994654,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.027375004719942808,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.014416640624403954,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.026916619390249252,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.01366669312119484,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.026083318516612053,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.013333337847143412,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.03570830449461937,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.020874955225735903,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.04095834447070956,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.013791664969176054,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.03045832272619009,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.01812499249354005,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.027875008527189493,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.01325004268437624,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.027291651349514723,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.014041666872799397,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.028583337552845478,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.013458309695124626,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.028666690923273563,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.013083335943520069,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.029166636522859335,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.013083335943520069,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.026916677597910166,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.013125012628734112,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.02804165706038475,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.01891667488962412,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.057791650760918856,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.017666665371507406,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.05191663512960076,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.02037500962615013,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.03045832272619009,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.013291661161929369,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.039208331145346165,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.018833321519196033,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.043458305299282074,
+      "operation" : "read:AXChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.026541645638644695,
+      "operation" : "read:AXURL"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.09933335240930319,
+      "operation" : "read:AXFocusedUIElement"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 0.0360416597686708,
+      "operation" : "read:AXSelectedChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 4.204416647553444,
+      "operation" : "write-target:AXSelectedChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 3.5851666470989585,
+      "operation" : "read:AXSelectedChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 2.9647916671819985,
+      "operation" : "restore-original:AXSelectedChildren"
+    },
+    {
+      "code" : 0,
+      "elapsedMS" : 3.0170833342708647,
+      "operation" : "read:AXSelectedChildren"
+    }
+  ],
+  "fixtureMatched" : true,
+  "restoredOriginalSelection" : true,
+  "schemaVersion" : 1,
+  "selectedCountBefore" : 1,
+  "status" : "verified-round-trip",
+  "targetReadbackMatched" : true,
+  "timestamp" : "2026-10-23T10:43:24Z",
+  "writeAttempted" : true
+}

@@ -1,0 +1,14 @@
+{
+  "arrowEvents" : 2,
+  "cacheReady" : true,
+  "captureDiagnostic" : "ready",
+  "committed" : 2,
+  "indeterminate" : 0,
+  "lastArrowFlags" : 536870912,
+  "lastCallbackMS" : 34.08237500116229,
+  "lastDecision" : "committed",
+  "maximumCallbackMS" : 34.08237500116229,
+  "message" : "已完成跨行选择",
+  "running" : true,
+  "unchanged" : 0
+}

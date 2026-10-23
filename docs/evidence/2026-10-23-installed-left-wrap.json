@@ -1,0 +1,16 @@
+{
+  "keyCode" : 123,
+  "selectedFramesAfter" : [
+    {
+      "x" : 1044,
+      "y" : 231
+    }
+  ],
+  "selectedIndicesAfter" : [
+    6
+  ],
+  "selectedIndicesBefore" : [
+    7
+  ],
+  "selectionCountAfter" : 1
+}

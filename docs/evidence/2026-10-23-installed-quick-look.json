@@ -1,0 +1,26 @@
+{
+  "previewFocusVerified" : true,
+  "steps" : [
+    {
+      "finderWindowFocused" : false,
+      "keyCode" : 124,
+      "selectedIndices" : [
+        1
+      ]
+    },
+    {
+      "finderWindowFocused" : false,
+      "keyCode" : 123,
+      "selectedIndices" : [
+        0
+      ]
+    },
+    {
+      "finderWindowFocused" : true,
+      "keyCode" : 49,
+      "selectedIndices" : [
+        0
+      ]
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "source": "User copied from installed FinderWrap panel before pausing",
+  "version": "0.1.0",
+  "os": "26.6.2 (25G83)",
+  "accessibility": true,
+  "inputMonitoring": true,
+  "runningAtCopyTime": true,
+  "cacheReadyAtCopyTime": false,
+  "captureAtCopyTime": "inactive-or-untrusted",
+  "confirmedWraps": 16,
+  "unchangedWrites": 0,
+  "indeterminateWrites": 0,
+  "maximumCallbackMS": 23.65,
+  "currentStateAfterAcceptance": "restarted in test-fixtures mode, default paused; native boundary behavior verified"
+}
