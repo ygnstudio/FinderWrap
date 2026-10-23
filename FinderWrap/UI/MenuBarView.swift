@@ -11,7 +11,8 @@ struct MenuBarView: View {
                 Spacer()
                 Text("预览版").font(.caption).foregroundStyle(.secondary)
             }
-            Toggle("左右键自动换行", isOn: Binding(get: { state.enabled }, set: state.setEnabled))
+            // Explicit closures avoid Swift 6.1.2's actor-isolated method conversion crash.
+            Toggle("左右键自动换行", isOn: Binding(get: { state.enabled }, set: { state.setEnabled($0) }))
                 .toggleStyle(.switch)
                 .disabled(!state.permissions.ready)
             Label(statusTitle, systemImage: state.status.running ? "checkmark.circle" : "pause.circle")
@@ -31,7 +32,7 @@ struct MenuBarView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Divider()
-            Toggle("登录时启动", isOn: Binding(get: { state.loginEnabled }, set: state.setLoginEnabled))
+            Toggle("登录时启动", isOn: Binding(get: { state.loginEnabled }, set: { state.setLoginEnabled($0) }))
                 .toggleStyle(.checkbox).disabled(state.loginBusy || state.testMode)
             if state.loginNeedsApproval {
                 Button("在系统设置中批准登录项") { SMAppService.openSystemSettingsLoginItems() }
