@@ -30,7 +30,9 @@ struct KeyBurst {
             let code: CGKeyCode = index.isMultiple(of: 2) ? 123 : 124
             guard let down = CGEvent(keyboardEventSource: source, virtualKey: code, keyDown: true),
                   let up = CGEvent(keyboardEventSource: source, virtualKey: code, keyDown: false) else { exit(4) }
-            down.flags = []; up.flags = []
+            // Match hardware navigation-key metadata; an empty flag set hid a regression.
+            down.flags = code == 49 ? [] : [.maskNumericPad, .maskSecondaryFn]
+            up.flags = down.flags
             down.setIntegerValueField(.eventSourceUserData, value: 0x4657524150)
             up.setIntegerValueField(.eventSourceUserData, value: 0x4657524150)
             let posted = ProcessInfo.processInfo.systemUptime

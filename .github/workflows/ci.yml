@@ -1,4 +1,4 @@
-name: Build and unit tests
+name: Build, test and package
 on:
   push:
   pull_request:
@@ -8,8 +8,11 @@ permissions:
 jobs:
   macos:
     runs-on: macos-15
+    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - name: Toolchain
         run: |
           sw_vers
@@ -30,4 +33,44 @@ jobs:
           otool -L "$app"
       - name: Shell syntax
         run: for script in scripts/*.sh; do bash -n "$script"; done
-# No signing secrets, upload, Release creation or keyboard simulation in CI.
+      - name: Packaging guards
+        run: python3 -m unittest discover -s Tests -p 'test_signing*.py' -v
+      - name: Archive unsigned verification build
+        run: bash scripts/archive-ci-build.sh
+      - name: Upload verification build (not for installation)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: FinderWrap-verification-unsigned-${{ github.sha }}
+          path: |
+            build/ci/FinderWrap-verification-unsigned.zip
+            build/ci/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 14
+      - name: Fixed-identity installation package
+        if: >-
+          github.ref == 'refs/heads/main' &&
+          (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+          vars.FINDERWRAP_SIGNING_ENABLED == 'true'
+        env:
+          FINDERWRAP_CERTIFICATE_P12_BASE64: ${{ secrets.FINDERWRAP_CERTIFICATE_P12_BASE64 }}
+          FINDERWRAP_CERTIFICATE_PASSWORD: ${{ secrets.FINDERWRAP_CERTIFICATE_PASSWORD }}
+        run: bash scripts/ci-sign-package.sh
+      - name: Upload fixed-identity installation package
+        if: >-
+          github.ref == 'refs/heads/main' &&
+          (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+          vars.FINDERWRAP_SIGNING_ENABLED == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: FinderWrap-fixed-signature-${{ github.sha }}
+          path: |
+            build/packages/*-fixed-universal.dmg
+            build/packages/*-fixed-universal.zip
+            build/packages/*-fixed-universal.sha256
+            build/packages/*-fixed-universal.signing.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Explain unsigned-only run
+        if: vars.FINDERWRAP_SIGNING_ENABLED != 'true'
+        run: echo 'Fixed certificate is not provisioned. Only the unsigned verification archive is available; do not install it.' >> "$GITHUB_STEP_SUMMARY"
+# Never sends keyboard events, changes TCC, creates a certificate, or creates a Release.

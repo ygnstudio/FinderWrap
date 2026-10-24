@@ -1,0 +1,265 @@
+{
+  "version": "1.0.0",
+  "tier": "fixture-restricted-runtime-host-fixed-initial-viewport",
+  "steps": [
+    {
+      "keyCode": 123,
+      "selectedFramesAfter": [
+        {
+          "x": 1073,
+          "y": 260
+        }
+      ],
+      "selectedIndicesAfter": [
+        6
+      ],
+      "selectedIndicesBefore": [
+        7
+      ],
+      "selectionCountAfter": 1
+    },
+    {
+      "keyCode": 124,
+      "selectedFramesAfter": [
+        {
+          "x": 521,
+          "y": 333
+        }
+      ],
+      "selectedIndicesAfter": [
+        7
+      ],
+      "selectedIndicesBefore": [
+        6
+      ],
+      "selectionCountAfter": 1
+    },
+    {
+      "keyCode": 126,
+      "selectedFramesAfter": [
+        {
+          "x": 521,
+          "y": 260
+        }
+      ],
+      "selectedIndicesAfter": [
+        0
+      ],
+      "selectedIndicesBefore": [
+        7
+      ],
+      "selectionCountAfter": 1
+    },
+    {
+      "keyCode": 125,
+      "selectedFramesAfter": [
+        {
+          "x": 521,
+          "y": 333
+        }
+      ],
+      "selectedIndicesAfter": [
+        7
+      ],
+      "selectedIndicesBefore": [
+        0
+      ],
+      "selectionCountAfter": 1
+    },
+    {
+      "keyCode": 124,
+      "selectedFramesAfter": [
+        {
+          "x": 521,
+          "y": 522
+        }
+      ],
+      "selectedIndicesAfter": [
+        18
+      ],
+      "selectedIndicesBefore": [
+        17
+      ],
+      "selectionCountAfter": 1
+    },
+    {
+      "keyCode": 123,
+      "selectedFramesAfter": [
+        {
+          "x": 797,
+          "y": 406
+        }
+      ],
+      "selectedIndicesAfter": [
+        17
+      ],
+      "selectedIndicesBefore": [
+        18
+      ],
+      "selectionCountAfter": 1
+    }
+  ],
+  "burst": {
+    "steps": [
+      {
+        "frames": [
+          {
+            "x": 1073,
+            "y": 260
+          }
+        ],
+        "index": 0,
+        "keyCode": 123,
+        "postedMS": 93.33720826543868,
+        "selectionCount": 1
+      },
+      {
+        "frames": [
+          {
+            "x": 521,
+            "y": 333
+          }
+        ],
+        "index": 1,
+        "keyCode": 124,
+        "postedMS": 196.11045822966844,
+        "selectionCount": 1
+      },
+      {
+        "frames": [
+          {
+            "x": 1073,
+            "y": 260
+          }
+        ],
+        "index": 2,
+        "keyCode": 123,
+        "postedMS": 280.3244582610205,
+        "selectionCount": 1
+      },
+      {
+        "frames": [
+          {
+            "x": 521,
+            "y": 333
+          }
+        ],
+        "index": 3,
+        "keyCode": 124,
+        "postedMS": 370.42399996425956,
+        "selectionCount": 1
+      },
+      {
+        "frames": [
+          {
+            "x": 1073,
+            "y": 260
+          }
+        ],
+        "index": 4,
+        "keyCode": 123,
+        "postedMS": 458.37895828299224,
+        "selectionCount": 1
+      },
+      {
+        "frames": [
+          {
+            "x": 521,
+            "y": 333
+          }
+        ],
+        "index": 5,
+        "keyCode": 124,
+        "postedMS": 557.1722915628925,
+        "selectionCount": 1
+      },
+      {
+        "frames": [
+          {
+            "x": 1073,
+            "y": 260
+          }
+        ],
+        "index": 6,
+        "keyCode": 123,
+        "postedMS": 653.5239166114479,
+        "selectionCount": 1
+      },
+      {
+        "frames": [
+          {
+            "x": 521,
+            "y": 333
+          }
+        ],
+        "index": 7,
+        "keyCode": 124,
+        "postedMS": 737.8451665863395,
+        "selectionCount": 1
+      },
+      {
+        "frames": [
+          {
+            "x": 1073,
+            "y": 260
+          }
+        ],
+        "index": 8,
+        "keyCode": 123,
+        "postedMS": 829.5237499987707,
+        "selectionCount": 1
+      },
+      {
+        "frames": [
+          {
+            "x": 521,
+            "y": 333
+          }
+        ],
+        "index": 9,
+        "keyCode": 124,
+        "postedMS": 920.0731666060165,
+        "selectionCount": 1
+      },
+      {
+        "frames": [
+          {
+            "x": 1073,
+            "y": 260
+          }
+        ],
+        "index": 10,
+        "keyCode": 123,
+        "postedMS": 1007.8591665951535,
+        "selectionCount": 1
+      },
+      {
+        "frames": [
+          {
+            "x": 521,
+            "y": 333
+          }
+        ],
+        "index": 11,
+        "keyCode": 124,
+        "postedMS": 1103.9944583317265,
+        "selectionCount": 1
+      }
+    ]
+  },
+  "status": {
+    "arrowEvents": 16,
+    "cacheReady": false,
+    "captureDiagnostic": "inactive-or-untrusted",
+    "committed": 16,
+    "indeterminate": 0,
+    "lastArrowFlags": 536870912,
+    "lastCallbackMS": 21.167124970816076,
+    "lastDecision": "committed",
+    "maximumCallbackMS": 33.21908332873136,
+    "message": "已完成跨行选择",
+    "running": true,
+    "unchanged": 0
+  },
+  "passed": true
+}

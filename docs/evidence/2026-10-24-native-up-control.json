@@ -1,0 +1,17 @@
+{
+  "keyCode": 126,
+  "selectedFramesAfter": [
+    {
+      "x": 521,
+      "y": 256
+    }
+  ],
+  "selectedIndicesAfter": [
+    0
+  ],
+  "selectedIndicesBefore": [
+    7
+  ],
+  "selectionCountAfter": 1,
+  "tier": "native-without-FinderWrap-or-runtime-host"
+}

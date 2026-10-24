@@ -1,0 +1,35 @@
+{
+  "version": "1.0.1",
+  "build": "3",
+  "architectures": "x86_64 arm64",
+  "noBuildHostPaths": true,
+  "noAppleDouble": true,
+  "binarySHA256": "b804982a66dd70ad70c44df9a3462eb3159cd27765b6bd86fd89f1a0a87b5fa3",
+  "artifacts": {
+    "FinderWrap-1.0.1-local-universal.dmg": {
+      "bytes": 558199,
+      "sha256": "b31cd129a60ebefbf623c345b7f714cbd85cc42a196da68508bf5274b792580c"
+    },
+    "FinderWrap-1.0.1-local-universal.zip": {
+      "bytes": 509190,
+      "sha256": "149acde650b0bbf0f85687e6b6ba731ca82edad08f5e7756386099d9f8d86bfd"
+    }
+  },
+  "strictSignatureVerified": true,
+  "dmgIntegrityVerified": true,
+  "dmgZipAppContentsEqual": true,
+  "installedVersion": "1.0.1",
+  "installedMatchesPackage": true,
+  "installedPermissionsAfterReplacement": {
+    "accessibility": false,
+    "inputMonitoring": false
+  },
+  "physicalNavigationAcceptance": "pending permission refresh",
+  "subsequentInstalledAcceptance": {
+    "userConfirmedPhysicalNavigation": true,
+    "permissionsRestored": true,
+    "sameInstalledBinary": true,
+    "navigationEnabled": true,
+    "intermittentAutoPauseInvestigation": "2026-10-24-auto-pause-investigation.json"
+  }
+}

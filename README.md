@@ -1,20 +1,28 @@
 # FinderWrap
 
-为 Finder 图标视图补充左右方向键跨行导航的原生 macOS 菜单栏应用。SwiftUI `MenuBarExtra`，无第三方运行时依赖，无账号、网络服务或遥测。最低编译目标 macOS 15，Release 为 Universal 2。
+为 Finder 图标视图补充左右方向键跨行导航的原生 macOS 菜单栏应用。SwiftUI `MenuBarExtra`，无第三方运行时依赖，无账号、网络服务或遥测。
 
-**当前版本为 0.1.0 本地预览，尚未达到正式发布门槛。** 核心导航已在本机 macOS 26.6.2 / Finder 26.4 的脱敏目录中实际运行。安装版菜单栏登记异常已修复，实际跨行、跨组与暂停对照已验证；AX 写入结果不确定时的输入原子性、其他系统及 Intel 真机仍待验证。
+**当前版本：1.0.1 本地分发版。** 提供 Universal 2 DMG 和 ZIP，使用 FinderWrap 专用固定自签证书，未做 Developer ID 签名或苹果公证。源码仓库保持私有；本地安装包不代表跨系统兼容性已全部验证。
+
+## 安装
+
+打开 `FinderWrap-1.0.1-b3-fixed-universal.dmg`，将 FinderWrap 拖入“应用程序”。已有预览版时，先退出应用并备份，在原位置替换，避免同时保留两个副本。详细说明见包内或 [安装说明](docs/installation.html)。
+
+全新安装默认暂停。用户在系统设置开启辅助功能、输入监控，再启用“左右键自动换行”。升级保留导航偏好；从旧 ad-hoc 包首次迁移到固定证书，可能需要重新授权一次。后续包强制沿用固定证书和代码身份，实际权限保留仍需目标机器验收。若诊断为 false，需在系统设置为更新后的应用重新授权并重新开启导航；登录启动默认关闭，只响应用户显式操作。未公证应用可能被系统阻止；核对来源和校验值后，使用系统设置提供的“仍要打开”，无需关闭 Gatekeeper 或 SIP。
 
 ## 行为和支持边界
 
 - 行末按 `→` 选择下一行首项；行首按 `←` 选择上一行末项。首尾不循环。
-- 行内、上下键、带修饰键的组合和多选保留 Finder 原生行为。末行不满时，Finder 原生右键可能选择上一行更靠右的图标，本版保留此行为，不额外强制停留。
+- 行内、上下键、带修饰键的组合和多选保留 Finder 原生行为。末行不满时，原生右键可能选择上一行更靠右的图标，本版保留此行为。
 - 支持结构和坐标均可确认的普通图标网格，以及已验证的日期分组边界。
-- Quick Look、桌面、列表、分栏、自由排列、不完整布局、屏外目标和超过 160 项的目录保留原生行为。原生左右键在这些边界可能仍停留，应用不会强制滚动或猜测目标。
-- 仅在单选、焦点和窗口未改变、缓存有效且 AX 写入读回确认目标时消费按键。写入结果无法确认时暂停监听并放行原事件；极端情况下仍存在额外移动的风险，见 [事务限制](docs/runtime-design.md)。
+- Quick Look、桌面、列表、分栏、自由排列、不完整布局、屏外目标和超过 160 项的目录保留原生行为，不强制滚动或猜测目标。
+- 写入前验证单选、焦点、窗口、布局和缓存。明确拒绝且读回原项时放行；目标读回确认时消费原键。结果不确定则暂停且不再投递该键，避免迟到写入叠加原生移动；这一次可能没有完成移动，后续输入恢复原生处理。详见 [输入协调](docs/runtime-design.md)。
 
-## 构建与本地预览
+实机证据主要来自 **macOS 26.6.2 / Finder 26.4 / Apple Silicon**。最低编译目标 macOS 15；Intel、macOS 15/27 的完整 GUI 与 Finder 导航尚未验证。
 
-需要 Xcode，无需安装第三方依赖：
+## 构建与打包
+
+需要 Xcode，无需第三方依赖：
 
 ```sh
 bash scripts/build.sh Debug
@@ -23,51 +31,35 @@ bash scripts/build.sh Release
 bash scripts/package.sh
 ```
 
-构建输出：`build/DerivedData/Build/Products/{Debug,Release}/`。打包输出：`build/packages/FinderWrap-0.1.0-preview-universal-adhoc.zip` 及 SHA-256 文件。预览包使用 ad-hoc 签名，不访问或创建证书；**不是 Developer ID 签名或公证发行版**。
+构建位于 `build/DerivedData/Build/Products/{Debug,Release}/`；DMG、ZIP 和 SHA-256 文件位于 `build/packages/`。打包默认要求 [固定签名配置](docs/signing.md)，配置缺失或证书不匹配即失败；拒绝覆盖同名包，排除 probe、测试工具、源码和本地诊断备份。仅本地实验可显式使用 `--ad-hoc`，CI 禁止生成这种安装包。
 
-安装脚本默认只预览，显式 `--apply` 才复制，且拒绝覆盖已有应用：
+GitHub Actions 执行单测和 Universal Release 构建，上传 `verification-unsigned` 验证归档（不可用于覆盖安装）。固定证书配置完成后，main 分支构建另提供 `fixed-signature` 安装包，并逐架构校验证书指纹与升级身份；不会每次生成新证书。CI 不操作 Finder 或修改系统权限。
+
+安装脚本默认只预览，`--apply` 才复制，拒绝覆盖已有应用：
 
 ```sh
 bash scripts/install.sh /absolute/path/FinderWrap.app
 bash scripts/install.sh --apply /absolute/path/FinderWrap.app
 ```
 
-应用默认暂停。用户自行在系统设置开启辅助功能、输入监控，再启用“左右键自动换行”。登录启动默认关闭，只响应用户显式操作。本机已按用户授权安装到 `~/Applications/FinderWrap.app` 并开启两项权限；没有开启登录启动。
-
-安装验收限定到项目生成的两个测试目录：
+测试模式仅接受项目内两个合成目录、默认暂停、不保存导航开关并禁用登录启动：
 
 ```sh
 open -n ~/Applications/FinderWrap.app --args --test-fixtures "$PWD"
 ```
 
-该模式只接受 `Tests/Fixtures/Synthetic` 和 `build/Fixtures/Large`，不保存导航开关，禁用登录启动选项。测试前确认没有另一个 FinderWrap/RuntimeHarness 实例。
+真实输入必须先获得授权；测试前确认没有其他 FinderWrap/RuntimeHarness 实例。卸载前先关闭登录启动并退出，`scripts/uninstall.sh` 默认预览，`--apply` 才移至废纸篓，保留偏好和系统权限记录。
 
-卸载脚本默认预览；先关闭登录启动并退出应用，`--apply` 才移入废纸篓，保留偏好和系统权限记录：
+## 验证与隐私
 
-```sh
-bash scripts/uninstall.sh
-```
+48 项 XCTest 覆盖导航、缓存、修饰键、超时/迟到写入故障模拟和停用写入屏障。实际 Finder 输入与安装验收分别记录，模拟故障不冒充真实系统故障。
 
-## 探查和隐私
+独立只读 probe 不申请授权、不写选择、不监听或发送按键；JSON 只含 AX 结构、坐标、状态、错误码及耗时。实验工具不进入应用包；复制诊断不含文件名、路径、选中文本或键盘文本。
 
-```sh
-bash scripts/probe.sh --help
-bash scripts/probe.sh --scenario current-state --output build/probe.json
-```
-
-独立 probe 不申请授权、不写选择、不监听或发送按键。JSON 保存 AX 角色、坐标、布尔状态、快照内编号、错误码及耗时，不保存文件名、路径、标题或文本。`scenario` 是操作者标签，不是自动识别结果。集合和图像可能重复表达同一个选中项，不能用 `selectedItems` 长度计数。
-
-`Tools/FinderAXProbe` 内的 SelectionCheck、KeySmoke、KeyBurst、QuickLookSmoke 和 RuntimeHarness 是独立实验程序，不进入应用包。真实输入必须得到用户明确授权；测试工具在每次操作前核对前台 Finder、窗口和合成项 URL。
-
-## 验证与项目状态
-
-36 个 XCTest 已通过；真实测试覆盖普通跨行、日期组间导航、12 次交替跨行、首项边界、上下键、Quick Look 和 36 项多选放行。测试宿主与安装版分开验收；安装版另外确认 16 次跨行/跨组写入、12 次交替按键、上下键、Quick Look 及暂停对照。跨系统和故障注入仍未完成。
-
-- [阶段记录](docs/agent-progress.md)
-- [AX 发现](docs/ax-findings.md) · [运行时设计](docs/runtime-design.md)
+- [1.0.1 交付记录](docs/release-1.0.1.md) · [发布检查表](docs/release-checklist.md)
 - [测试报告](docs/test-report.md) · [兼容矩阵](docs/compatibility.md)
-- [真实输入测试授权](docs/native-test-plan.md)
-- [菜单栏登记诊断](docs/menubar-diagnosis.md)
-- [发布检查表](docs/release-checklist.md)
+- [AX 发现](docs/ax-findings.md) · [运行时设计](docs/runtime-design.md)
+- [真实输入测试授权](docs/native-test-plan.md) · [菜单栏登记诊断](docs/menubar-diagnosis.md)
+- [历史阶段记录](docs/agent-progress.md)
 
-MIT 许可证。源码托管于 [ygnstudio/FinderWrap](https://github.com/ygnstudio/FinderWrap) 私有仓库。远端验证结果见 [GitHub Actions](https://github.com/ygnstudio/FinderWrap/actions)；源码托管和 CI 构建不代表正式发布。尚未创建 GitHub Release 或公开上传构建。
+MIT 许可证。源码托管于 [ygnstudio/FinderWrap](https://github.com/ygnstudio/FinderWrap) 私有仓库。源码推送、远端 CI、安装包与公开发布是不同交付阶段；当前状态以交付记录为准。

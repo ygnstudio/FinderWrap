@@ -9,7 +9,8 @@ struct MenuBarView: View {
             HStack {
                 Text("FinderWrap").font(.headline)
                 Spacer()
-                Text("预览版").font(.caption).foregroundStyle(.secondary)
+                Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "开发版")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             // Explicit closures avoid Swift 6.1.2's actor-isolated method conversion crash.
             Toggle("左右键自动换行", isOn: Binding(get: { state.enabled }, set: { state.setEnabled($0) }))
@@ -72,7 +73,7 @@ struct MenuBarView: View {
     }
 
     private var statusDetail: String {
-        if state.status.indeterminate > 0 { return "上次选择结果无法确认，监听已暂停。可复制诊断信息后重新启用。" }
+        if state.status.indeterminate > 0 { return "上次按键的选择结果未确认，已暂停自动换行。请检查选中项；后续按键由 Finder 正常处理。" }
         if let failure = state.status.failure { return failure }
         if state.status.running { return "行内移动、上下键与组合键保持原有行为。" }
         return "开启后，在行末按 → 进入下一行，行首按 ← 返回上一行。"

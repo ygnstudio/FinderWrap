@@ -35,7 +35,9 @@ struct KeySmoke {
                 FileHandle.standardError.write(Data("unexpected-start-selection; no-event-posted\n".utf8)); exit(6)
             }
         }
-        down.flags = []; up.flags = []
+        // Match hardware navigation-key metadata; an empty flag set hid a regression.
+        down.flags = code == 49 ? [] : [.maskNumericPad, .maskSecondaryFn]
+        up.flags = down.flags
         down.setIntegerValueField(.eventSourceUserData, value: 0x4657524150)
         up.setIntegerValueField(.eventSourceUserData, value: 0x4657524150)
         down.post(tap: .cghidEventTap)

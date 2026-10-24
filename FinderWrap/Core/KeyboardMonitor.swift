@@ -12,7 +12,9 @@ struct MonitorStatus: Codable, Sendable {
     var lastCallbackMS = 0.0
     var arrowEvents = 0
     var lastArrowFlags: UInt64 = 0
+    var lastArrowFnDown = false
     var captureDiagnostic = "not-started"
+    var lastFinderCapture = "not-observed"
     var cacheReady = false
     var failure: String?
     var lastDecision = "none"
@@ -21,6 +23,7 @@ struct MonitorStatus: Codable, Sendable {
 final class KeyboardMonitor: @unchecked Sendable {
     private let lock = NSLock()
     private let cache = LayoutCache()
+    private let writeGate = SelectionWriteGate()
     private let worker = DispatchQueue(label: "dev.finderwrap.layout", qos: .userInitiated)
     private var refreshTimer: DispatchSourceTimer?
     private var thread: Thread?
@@ -40,13 +43,17 @@ final class KeyboardMonitor: @unchecked Sendable {
         guard CGPreflightListenEventAccess() else { fail("需要输入监控权限"); return }
         AXUIElementSetMessagingTimeout(AXUIElementCreateSystemWide(), 0.01)
         lock.withLock { stopping = false; state.message = "正在启动" }
+        writeGate.open()
         let timer = DispatchSource.makeTimerSource(queue: worker)
         timer.schedule(deadline: .now(), repeating: .milliseconds(150))
         timer.setEventHandler { [weak self] in
             guard let self, !self.lock.withLock({ self.stopping }) else { return }
             let epoch = self.cache.beginRefresh()
             let context = FinderAccessibility().capture(allowedDirectories: self.allowedDirectories) { reason in
-                self.lock.withLock { self.state.captureDiagnostic = reason }
+                self.lock.withLock {
+                    self.state.captureDiagnostic = reason
+                    if reason != "inactive-or-untrusted" { self.state.lastFinderCapture = reason }
+                }
             }
             self.lock.withLock { self.state.cacheReady = context != nil }
             self.cache.store(context, epoch: epoch)
@@ -61,6 +68,7 @@ final class KeyboardMonitor: @unchecked Sendable {
     }
 
     func stop() {
+        writeGate.close()
         let loop = lock.withLock { stopping = true; state.running = false; state.message = "已暂停"; return runLoop }
         refreshTimer?.cancel(); refreshTimer = nil
         cache.invalidate()
@@ -107,6 +115,7 @@ final class KeyboardMonitor: @unchecked Sendable {
     private func handle(_ type: CGEventType, _ event: CGEvent) -> Unmanaged<CGEvent>? {
         let pass = Unmanaged.passUnretained(event)
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+            writeGate.close()
             lock.withLock {
                 stopping = true; state.running = false
                 state.message = "系统暂停了监听，请重新启用"
@@ -117,11 +126,20 @@ final class KeyboardMonitor: @unchecked Sendable {
             return pass
         }
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
-        if type == .keyDown, keyCode == 123 || keyCode == 124 {
-            lock.withLock { state.arrowEvents += 1; state.lastArrowFlags = event.flags.rawValue }
+        let horizontalKey = type == .keyDown && (keyCode == 123 || keyCode == 124)
+        // Virtual key 63 is the physical Fn/Globe key. Navigation-key metadata
+        // shares maskSecondaryFn, so event.flags cannot answer this question.
+        let fnKeyDown = horizontalKey && (CGEventSource.keyState(.combinedSessionState, key: 63)
+                                          || CGEventSource.keyState(.hidSystemState, key: 63))
+        if horizontalKey {
+            lock.withLock {
+                state.arrowEvents += 1; state.lastArrowFlags = event.flags.rawValue
+                state.lastArrowFnDown = fnKeyDown
+            }
         }
         guard type == .keyDown, !lock.withLock({ stopping }),
-              let direction = KeyboardPolicy.direction(keyCode: keyCode, flags: event.flags) else {
+              let direction = KeyboardPolicy.direction(keyCode: keyCode, flags: event.flags, fnKeyDown: fnKeyDown) else {
+            if horizontalKey { lock.withLock { state.lastDecision = "modified-horizontal-key-or-stopped" } }
             cache.invalidate()
             return pass
         }
@@ -147,23 +165,26 @@ final class KeyboardMonitor: @unchecked Sendable {
               let target = context.items.first(where: { $0.model.id == id }),
               let original = context.items.first(where: { selected.contains($0.model.id) }),
               ax.withinBudget, FinderSession.activePID == context.pid else { return pass }
-        switch adapter.commit(target: target, original: original, in: context) {
-        case .committed:
-            lock.withLock { state.committed += 1; state.message = "已完成跨行选择"; state.lastDecision = "committed" }
-            return nil
-        case .unchanged:
-            lock.withLock { state.unchanged += 1; state.message = "选中项未改变，已放行按键" }
-            cache.invalidate(); return pass
-        case .indeterminate:
-            lock.withLock {
-                stopping = true; state.running = false; state.indeterminate += 1
-                state.message = "选择结果不确定，已暂停并放行按键"
-                state.failure = state.message
-            }
-            logger.error("Indeterminate AX selection result; monitor paused and original event passed through.")
-            cache.invalidate()
-            CFRunLoopStop(CFRunLoopGetCurrent())
+        guard let result = writeGate.perform({ adapter.commit(target: target, original: original, in: context) }) else {
             return pass
         }
+        switch result {
+        case .committed:
+            lock.withLock { state.committed += 1; state.message = "已完成跨行选择"; state.lastDecision = "committed" }
+        case .unchanged:
+            lock.withLock { state.unchanged += 1; state.message = "选中项未改变，已放行按键" }
+            cache.invalidate()
+        case .indeterminate:
+            writeGate.close()
+            lock.withLock {
+                stopping = true; state.running = false; state.indeterminate += 1
+                state.message = "本次选择未确认，已暂停；请检查选中项后继续操作"
+                state.failure = state.message
+            }
+            logger.error("Indeterminate AX selection result; monitor paused, original event suppressed to prevent duplicate movement.")
+            cache.invalidate()
+            CFRunLoopStop(CFRunLoopGetCurrent())
+        }
+        return result.consumesEvent ? nil : pass
     }
 }

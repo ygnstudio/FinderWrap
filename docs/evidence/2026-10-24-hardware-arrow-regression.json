@@ -1,0 +1,80 @@
+{
+  "date": "2026-10-24",
+  "os": "macOS 26.6.2 (25G83)",
+  "scope": "User pressed physical navigation keys in the authorized Synthetic fixture. Read-only listen tap; no characters recorded.",
+  "initialObserverLimitation": "Full-layout capture gated the first probe; it only recorded Home/End. The second probe checked selected-item fixture identity without requiring a complete layout.",
+  "physicalEvents": [
+    {
+      "fixtureVerified": true,
+      "flagsHex": "a00100",
+      "hidFnDown": false,
+      "keyCode": 123,
+      "sessionFnDown": false,
+      "type": 10
+    },
+    {
+      "fixtureVerified": true,
+      "flagsHex": "a00100",
+      "hidFnDown": false,
+      "keyCode": 124,
+      "sessionFnDown": false,
+      "type": 10
+    },
+    {
+      "fixtureVerified": true,
+      "flagsHex": "800100",
+      "hidFnDown": false,
+      "keyCode": 115,
+      "sessionFnDown": false,
+      "type": 10
+    },
+    {
+      "fixtureVerified": true,
+      "flagsHex": "800100",
+      "hidFnDown": false,
+      "keyCode": 119,
+      "sessionFnDown": false,
+      "type": 10
+    }
+  ],
+  "confirmedCause": "Plain left/right events contain 0x800000 function metadata; 1.0.0 KeyboardPolicy rejected any such flag before selection logic.",
+  "fnObservation": "Fn combinations arrived as Home/End key codes (115/119). Key state 63 remained false on this keyboard; no physical Fn-down state was observed. These remapped codes pass through regardless.",
+  "redTest": {
+    "target": "FinderWrapProbeTests/KeyboardPolicyTests/testHardwareArrowFunctionMetadataIsNotAHeldFnModifier",
+    "result": "failed on old policy",
+    "assertionFailures": 2
+  },
+  "greenTest": {
+    "total": 48,
+    "failures": 0
+  },
+  "installation": {
+    "version": "1.0.1",
+    "build": "3",
+    "installedMatchesPackage": true,
+    "binarySHA256": "b804982a66dd70ad70c44df9a3462eb3159cd27765b6bd86fd89f1a0a87b5fa3",
+    "oldAppPreserved": true
+  },
+  "permissionsAfterReplacement": {
+    "accessibility": false,
+    "inputMonitoring": false,
+    "running": false
+  },
+  "physicalInstalledWrapAcceptance": "pending permission refresh and user validation",
+  "permissionIdentityDiagnosis": {
+    "method": "codesign -d -r- for installed old/new app",
+    "requirements": {
+      "old": "# designated => cdhash H\"e89c89ce990dce1eab63f9665540aeaca37e6579\" or cdhash H\"2d8f9b3d7342a9308e4a1107635d689c1d73b277\"",
+      "new": "# designated => cdhash H\"b5cb2a811d53d410cd4bbc6c1090c86806b624e2\" or cdhash H\"c3c53202cdac1bdac3609fb0ff3422a55a4d6939\""
+    },
+    "conclusion": "Both ad-hoc identities are tied to different exact cdhash values; the update does not satisfy the old designated requirement.",
+    "reference": "https://developer.apple.com/documentation/technotes/tn3127-inside-code-signing-requirements"
+  },
+  "subsequentInstalledAcceptance": {
+    "userConfirmedPhysicalNavigation": true,
+    "permissionsRestored": true,
+    "sameInstalledBinary": true,
+    "navigationEnabled": true,
+    "intermittentAutoPauseInvestigation": "2026-10-24-auto-pause-investigation.json"
+  }
+}

@@ -28,7 +28,9 @@ struct QuickLookSmoke {
             guard scoped(), let source = CGEventSource(stateID: .hidSystemState),
                   let down = CGEvent(keyboardEventSource: source, virtualKey: code, keyDown: true),
                   let up = CGEvent(keyboardEventSource: source, virtualKey: code, keyDown: false) else { return false }
-            down.flags = []; up.flags = []
+            // Match hardware navigation-key metadata; an empty flag set hid a regression.
+            down.flags = code == 49 ? [] : [.maskNumericPad, .maskSecondaryFn]
+            up.flags = down.flags
             down.post(tap: .cghidEventTap); up.post(tap: .cghidEventTap)
             RunLoop.current.run(until: Date().addingTimeInterval(0.35))
             return true

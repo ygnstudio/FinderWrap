@@ -114,14 +114,16 @@ struct FinderAccessibility {
 
     func commit(target: BoundItem, original: BoundItem, in context: FinderContext) -> SelectionCommitResult {
         // Synchronous call on the tap thread, never fire-and-forget. No injected replay.
-        let writeResult = AXUIElementSetAttributeValue(context.collection, kAXSelectedChildrenAttribute as CFString, [target.wrapper] as CFArray)
+        SelectionCommitResult.perform(write: {
+            AXUIElementSetAttributeValue(context.collection, kAXSelectedChildrenAttribute as CFString, [target.wrapper] as CFArray)
+        }, readback: {
         let ax = AXAccess(deadline: ProcessInfo.processInfo.systemUptime + 0.015)
-        let observed: SelectionObservation
         if let readback = ax.elements(context.collection, kAXSelectedChildrenAttribute, limit: 2), readback.count == 1 {
-            if CFEqual(readback[0], target.wrapper) { observed = .target }
-            else if CFEqual(readback[0], original.wrapper) { observed = .original }
-            else { observed = .other }
-        } else { observed = .unavailable }
-        return SelectionCommitResult.resolve(writeSucceeded: writeResult == .success, observation: observed)
+            if CFEqual(readback[0], target.wrapper) { return .target }
+            if CFEqual(readback[0], original.wrapper) { return .original }
+            return .other
+        }
+        return .unavailable
+        })
     }
 }

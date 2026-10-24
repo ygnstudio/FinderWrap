@@ -1,0 +1,66 @@
+{
+  "version": "1.0.0",
+  "build": "2",
+  "distribution": "local-ad-hoc-not-notarized",
+  "artifacts": {
+    "FinderWrap-1.0.0-local-universal.dmg": {
+      "bytes": 556189,
+      "sha256": "3f6c8e771f07f45dab4d50f2b0ef8c62ace8f119e738967ab73c382e68964ea3"
+    },
+    "FinderWrap-1.0.0-local-universal.zip": {
+      "bytes": 506835,
+      "sha256": "1191a408d50bfb67c88fbffc46ab9b71d34749653bf9a4299602babb5fa6c7ef"
+    }
+  },
+  "zipEntries": [
+    "Install.html",
+    "LICENSE.txt",
+    "FinderWrap.app/",
+    "FinderWrap.app/Contents/",
+    "FinderWrap.app/Contents/_CodeSignature/",
+    "FinderWrap.app/Contents/_CodeSignature/CodeResources",
+    "FinderWrap.app/Contents/MacOS/",
+    "FinderWrap.app/Contents/MacOS/FinderWrap",
+    "FinderWrap.app/Contents/Resources/",
+    "FinderWrap.app/Contents/Resources/AppIcon.icns",
+    "FinderWrap.app/Contents/Resources/Assets.car",
+    "FinderWrap.app/Contents/Info.plist",
+    "FinderWrap.app/Contents/PkgInfo"
+  ],
+  "dmgAndZipAppContentsIdentical": true,
+  "applicationFiles": [
+    "Contents/Info.plist",
+    "Contents/MacOS/FinderWrap",
+    "Contents/PkgInfo",
+    "Contents/Resources/AppIcon.icns",
+    "Contents/Resources/Assets.car",
+    "Contents/_CodeSignature/CodeResources"
+  ],
+  "minimumOS": "15.0",
+  "architectures": [
+    "x86_64",
+    "arm64"
+  ],
+  "signature": "ad-hoc with hardened runtime; strict verification passed",
+  "isolatedCopyMatches": true,
+  "gatekeeperAccepted": true,
+  "gatekeeperExitCode": 0,
+  "gatekeeperAssessmentOutput": "",
+  "hostAssessmentPolicy": "assessments disabled",
+  "notarizationVerified": false,
+  "archivePrivacyScan": {
+    "passed": true,
+    "checks": [
+      "no private key or GitHub token pattern",
+      "no build-host home path",
+      "no provenance metadata or AppleDouble entries"
+    ]
+  },
+  "launchSmoke": {
+    "passed": true,
+    "source": "stripped app copied from final DMG",
+    "testFixtureArgumentsVerified": true,
+    "navigationExpectedDisabledInTestMode": true,
+    "scope": "startup only; not installed-menu interaction or navigation acceptance"
+  }
+}
