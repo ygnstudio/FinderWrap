@@ -2,9 +2,21 @@
 
 为 Finder 图标视图补充左右方向键跨行导航的原生 macOS 菜单栏应用。SwiftUI `MenuBarExtra`，无第三方运行时依赖，无账号、网络服务或遥测。
 
-**当前版本：1.0.1 本地分发版。** 提供 Universal 2 DMG 和 ZIP，使用 FinderWrap 专用固定自签证书，未做 Developer ID 签名或苹果公证。源码仓库保持私有；本地安装包不代表跨系统兼容性已全部验证。
+**当前版本：1.0.1。** 提供 Universal 2 DMG 和 ZIP，使用 FinderWrap 专用固定自签证书，未做 Developer ID 签名或苹果公证。源码按 MIT 许可证公开；安装包不代表跨系统兼容性已全部验证。
 
 ## 安装
+
+通过现有 [Homebrew tap](https://github.com/ygnstudio/homebrew-ygn) 安装和升级：
+
+```sh
+brew install --cask ygnstudio/ygn/finderwrap
+brew update
+brew upgrade --cask ygnstudio/ygn/finderwrap
+```
+
+已手动安装的用户请先退出并备份原应用，再安排迁移；不要使用 `--force` 直接覆盖正在运行的应用。
+
+也可从 [Releases](https://github.com/ygnstudio/FinderWrap/releases) 下载已验签的安装包。
 
 打开 `FinderWrap-1.0.1-b3-fixed-universal.dmg`，将 FinderWrap 拖入“应用程序”。已有预览版时，先退出应用并备份，在原位置替换，避免同时保留两个副本。详细说明见包内或 [安装说明](docs/installation.html)。
 
@@ -62,4 +74,4 @@ open -n ~/Applications/FinderWrap.app --args --test-fixtures "$PWD"
 - [真实输入测试授权](docs/native-test-plan.md) · [菜单栏登记诊断](docs/menubar-diagnosis.md)
 - [历史阶段记录](docs/agent-progress.md)
 
-MIT 许可证。源码托管于 [ygnstudio/FinderWrap](https://github.com/ygnstudio/FinderWrap) 私有仓库。源码推送、远端 CI、安装包与公开发布是不同交付阶段；当前状态以交付记录为准。
+MIT 许可证。源码与安装包托管于 [ygnstudio/FinderWrap](https://github.com/ygnstudio/FinderWrap)，安装定义维护于 [ygnstudio/homebrew-ygn](https://github.com/ygnstudio/homebrew-ygn)。签名私钥不进入源码或安装包。

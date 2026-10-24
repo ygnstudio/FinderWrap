@@ -1,6 +1,6 @@
 # 发布检查表
 
-当前修复：**1.0.1 / build 3，本地分发版**。1.0.0 已确认误拒绝真实方向键的 function 标记，停止推荐安装。仓库保持私有；源码与 CI 状态按对应提交的 [Actions 记录](https://github.com/ygnstudio/FinderWrap/actions) 核对。
+当前修复：**1.0.1 / build 3**。1.0.0 已确认误拒绝真实方向键的 function 标记，停止推荐安装。用户已批准公开源码和固定签名安装包；源码与 CI 状态按对应提交的 [Actions 记录](https://github.com/ygnstudio/FinderWrap/actions) 核对。
 
 - [x] 用户硬件按键只读取证：普通左右键标记 `0xa00100`，Fn 组合到达时为 Home/End。
 - [x] 回归在旧过滤策略运行失败（左右两处断言），修复后 48 项 XCTest 通过。
@@ -15,7 +15,7 @@
 - [ ] 固定证书首次迁移及后续实机 TCC 权限保留验收；本轮未替换当前正常使用的应用。
 - [ ] 间歇性 AX 未确认的具体错误：曾触发两次自动暂停，重启同一安装版后未复现；保护逻辑保持不变，不能据当前恢复声称永久修复。
 
-仍未覆盖：物理长按、输入法、Finder 重启、更多分组/缩放、macOS 15/27、Intel 真机和登录项生命周期。没有 Developer ID 签名、公证、标准 Gatekeeper 环境下载验收，未更改系统安全设置。未创建 Release。
+仍未覆盖：物理长按、输入法、Finder 重启、更多分组/缩放、macOS 15/27、Intel 真机和登录项生命周期。没有 Developer ID 签名、公证、标准 Gatekeeper 环境下载验收，未更改系统安全设置。公开资产与版本以 [Releases](https://github.com/ygnstudio/FinderWrap/releases) 为准。
 
 CI 打包要求固定证书，禁止自动退回 ad-hoc；证书指纹、临时钥匙串、Secrets 配置与首次迁移验收见 [签名说明](signing.md)。签名身份连续性和实机 TCC 权限保留分别验收，不能互相替代。
 

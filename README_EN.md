@@ -1,16 +1,30 @@
 # FinderWrap
 
-A native macOS menu bar utility that adds left/right row wrapping to Finder icon views. Built with SwiftUI `MenuBarExtra`, public Accessibility APIs and `CGEventTap`. No third-party runtime, accounts, networking or telemetry. Deployment target: macOS 15; Release: Universal 2.
+A native macOS menu bar app that adds left/right row wrapping to Finder icon views. Built with SwiftUI `MenuBarExtra`, public Accessibility APIs and `CGEventTap`. No third-party runtime, accounts, networking or telemetry.
 
-**Version 0.1.0 is a local preview, not a production release.** Core navigation has run against synthetic folders on macOS 26.6.2 / Finder 26.4. Installed-app menu registration has been repaired; scoped row/group wrapping and paused native behavior were verified. AX failure atomicity, other macOS versions and Intel runtime compatibility remain unverified.
+**Current version: 1.0.1.** Universal 2 for Apple Silicon and Intel, with a macOS 15 deployment target. Source is MIT licensed. Installation packages use a fixed FinderWrap self-signed certificate; they are not Developer ID signed or Apple notarized.
+
+## Install and update
+
+```sh
+brew install --cask ygnstudio/ygn/finderwrap
+brew update
+brew upgrade --cask ygnstudio/ygn/finderwrap
+```
+
+Alternatively, download the DMG or ZIP from [Releases](https://github.com/ygnstudio/FinderWrap/releases). If you already installed manually, quit and back up that copy before migrating. Do not force an overwrite of a running app.
+
+Grant Accessibility and Input Monitoring in System Settings, then enable navigation. A fresh installation starts paused; launch at login is off by default. If macOS blocks the first launch, verify the download source and checksum, then use the system's Open Anyway option. Homebrew preserves system security checks.
+
+Moving from an older ad-hoc build to the fixed certificate may require one-time reauthorization. Subsequent packages must retain the same certificate and designated requirement. Actual permission retention across upgrades still requires testing on the target machine.
 
 ## Behavior
 
-At a row's right edge, Right selects the next row's first item. At its left edge, Left selects the previous row's last item. There is no custom end-to-start cycle. On an incomplete final row, Finder may natively select an item farther right on the preceding row; this version preserves that behavior. Interior movement, Up/Down, modified keys and multiple selection pass through.
+At a row's right edge, Right selects the next row's first item. At its left edge, Left selects the previous row's last item. There is no end-to-start cycle. Interior movement, Up/Down, modified keys and multiple selection retain Finder behavior, including its behavior on incomplete final rows.
 
-The runtime recognizes confirmed ordinary icon grids and tested date-group boundaries. Quick Look, desktop, list/column views, free arrangement, incomplete layouts, offscreen targets and folders over 160 items retain native behavior. Native movement can still stop at these unsupported boundaries.
+Confirmed ordinary icon grids and tested date-group boundaries are supported. Quick Look, desktop, list/column views, free arrangement, incomplete layouts, offscreen targets and folders over 160 items retain native behavior.
 
-A key is consumed only after a synchronous AX write and a readback matching the target. An unknown result pauses interception and passes the original event; a write that actually succeeded despite failed readback can cause extra movement. This remains a release blocker; see [runtime design](docs/runtime-design.md).
+Selection is written synchronously and read back. A confirmed target consumes the original key; an explicit rejection with the original selection unchanged passes it through. An uncertain result consumes that one key and pauses navigation to avoid duplicate movement from a late AX write. Later keys use Finder's native behavior. An intermittent pause was observed and did not recur after restarting the same installed app; its underlying AX cause remains unresolved.
 
 ## Build and package
 
@@ -18,29 +32,21 @@ A key is consumed only after a synchronous AX write and a readback matching the 
 bash scripts/build.sh Debug
 bash scripts/test.sh
 bash scripts/build.sh Release
-bash scripts/package.sh
+bash scripts/package.sh --fixed
 ```
 
-Products are in `build/DerivedData/Build/Products/`. The local ZIP and SHA-256 file are in `build/packages/`. Packaging uses ad-hoc signing, without accessing certificates. It is not Developer ID signed or notarized.
+Products are in `build/DerivedData/Build/Products/`; packages and checksums are in `build/packages/`. Fixed packaging requires the certificate pinned in [the signing policy](config/signing.json). It fails if the identity is missing or mismatched. Contributors can build unsigned products; local experiments may explicitly use `--ad-hoc`, which is forbidden in CI and is unsuitable for preserving an installed version's permissions.
 
-`install.sh` defaults to a dry run; `--apply` copies to a new destination and refuses replacement. `uninstall.sh` defaults to a dry run; after login launch is disabled and the app quits, `--apply` moves the app to Trash while retaining preferences and permission records. Neither script grants permissions or registers login items.
+The private signing key is not part of the repository. Main-branch signing uses Actions Secrets and a temporary keychain; pull requests do not receive the secrets. CI verification archives are marked unsigned and must not replace an installed app. See [signing and distribution](docs/signing.md).
 
-The app starts paused. Grant Accessibility and Input Monitoring in System Settings, then enable navigation. Login at launch requires an explicit user action.
+`install.sh` defaults to a dry run and refuses replacement. `uninstall.sh` retains preferences and permission records. Experimental input helpers are not packaged in the app and require explicit authorization; all recorded navigation tests used synthetic directories.
 
-For this task, installation and permissions were authorized, but all navigation testing remains restricted to two synthetic folders. Start the installed app from the project root with:
+## Verification and limits
 
-```sh
-open -n ~/Applications/FinderWrap.app --args --test-fixtures "$PWD"
-```
+48 XCTest cases cover navigation, cache behavior, key flags, uncertain/late writes and the stop barrier. Five packaging tests check signing guards. Local and CI packages with different binaries were verified to retain the same signing identity. These checks do not replace installed-app or permission-migration testing.
 
-Test mode accepts only `Tests/Fixtures/Synthetic` and `build/Fixtures/Large`, does not persist the navigation switch, and disables login launch.
+Main runtime evidence comes from macOS 26.6.2 / Finder 26.4 on Apple Silicon. Other macOS versions, Intel GUI behavior, physical long presses, more layouts, input methods and login-item lifecycle remain incompletely tested.
 
-## Evidence and limitations
+Diagnostic output excludes filenames, paths, selected text and keyboard text. See the [test report](docs/test-report.md), [compatibility matrix](docs/compatibility.md), [runtime design](docs/runtime-design.md) and [release checklist](docs/release-checklist.md).
 
-36 XCTest cases passed. Scoped runtime tests demonstrated ordinary row wrapping, date-group crossing, 12 alternating boundary keys, the first-item boundary, native Up/Down, Quick Look pass-through and 36-item multiple selection. Separately, the installed app confirmed 16 wraps, a 12-key burst, Up/Down, Quick Look and a paused native comparison. Cross-version and fault-injection acceptance remain pending.
-
-The standalone read-only probe saves roles, geometry, booleans, opaque snapshot IDs, errors and timing, not filenames, paths, titles or selected text. Input-generating experimental helpers are not packaged in the app and require explicit user authorization.
-
-See the [test report](docs/test-report.md), [AX findings](docs/ax-findings.md), [compatibility matrix](docs/compatibility.md), [menu registration diagnosis](docs/menubar-diagnosis.md), and [release checklist](docs/release-checklist.md).
-
-MIT licensed. Source is hosted in the private [ygnstudio/FinderWrap](https://github.com/ygnstudio/FinderWrap) repository. See [GitHub Actions](https://github.com/ygnstudio/FinderWrap/actions) for remote checks. Source hosting and CI builds do not constitute a production release; no GitHub Release or public binary upload has been made.
+Source and downloads: [ygnstudio/FinderWrap](https://github.com/ygnstudio/FinderWrap). Homebrew cask: [ygnstudio/homebrew-ygn](https://github.com/ygnstudio/homebrew-ygn).

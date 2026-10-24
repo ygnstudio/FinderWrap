@@ -1,6 +1,6 @@
 # FinderWrap 1.0.1 · 真实方向键修复
 
-2026-10-24，build 3。以下安装验收及哈希对应最初的本地 ad-hoc 包。仓库保持私有；后续固定证书 CI 流程见 [签名说明](signing.md)，远端构建以对应提交的 [Actions 记录](https://github.com/ygnstudio/FinderWrap/actions) 为准。未创建 Release 或公证。
+2026-10-24，build 3。以下安装验收及哈希对应最初的本地 ad-hoc 包。随后用户批准固定签名、公开源码和安装包，并接入现有 Homebrew tap；公开资产以 [Releases](https://github.com/ygnstudio/FinderWrap/releases) 为准。固定证书 CI 流程见 [签名说明](signing.md)，远端构建以对应提交的 [Actions 记录](https://github.com/ygnstudio/FinderWrap/actions) 为准。未做苹果公证。
 
 ## 原因与修改
 

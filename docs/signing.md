@@ -19,7 +19,7 @@
 
 签名步骤只在临时 runner 钥匙串导入此证书，私钥授权限于 codesign / Apple 工具；暂时加入钥匙串搜索列表，完成或失败均恢复列表并清理临时钥匙串和 P12，不添加系统证书信任。密钥不进入源码、构建日志或上传目录。Actions 固定到已核对的提交，checkout 不保留 Git 凭据，工作流只有 contents:read。配置缺失、证书不匹配或签名校验失败时整次构建失败，不上传安装包。
 
-`fixed-signature` artifact 包含 DMG、ZIP、SHA-256 和签名清单。它属于私有仓库构建产物，工作流不创建 GitHub Release、不修改 TCC、不操作 Finder 或安装应用。
+`fixed-signature` artifact 包含 DMG、ZIP、SHA-256 和签名清单。经下载验签后，将同一份文件发布至 FinderWrap Releases，并更新 `ygnstudio/homebrew-ygn` 中 cask 的版本和 SHA-256。CI 本身不自动创建 Release、不修改 TCC、不操作 Finder 或安装应用；Homebrew 不重新编译或重新签名。
 
 ## 本地打包
 
@@ -34,7 +34,7 @@ bash scripts/package.sh --fixed
 
 ## 本次启用证据
 
-用户已批准建立专用证书并配置私有仓库 Secrets。公开指纹固定于配置文件；加密 P12 在维护者本机独立保存，密码保存在用户钥匙串，不随仓库交付。有效期为 10 年，丢失或到期前须另行安排证书迁移。
+用户已批准建立专用证书并配置仓库 Actions Secrets，随后批准公开源码和安装包。公开指纹固定于配置文件；加密 P12 在维护者本机独立保存，密码保存在用户钥匙串，不随仓库交付。仓库公开不会将 Secrets 写入源码；签名仍仅限可信 main 构建，PR 不读取密钥。证书有效期为 10 年，丢失或到期前须另行安排迁移。
 
 本地已验证固定签名包、不同 build 元数据候选包的 DR 一致性和交叉验证，以及同 bundle identifier 的 ad-hoc 包被拒绝。见 [签名证据](evidence/2026-10-24-fixed-signing.json)。当前已安装的 ad-hoc 应用未被替换，因此尚未执行首次证书迁移或后续 TCC 保留验收。
 
