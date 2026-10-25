@@ -104,21 +104,61 @@ struct FinderAccessibility {
               AXUIElementIsAttributeSettable(collection, kAXSelectedChildrenAttribute as CFString, &settable) == .success,
               settable.boolValue else { return nil }
 
+        guard let layout = readLayout(sections: sections, viewportFrame: viewportFrame, ax: ax,
+                                      allowedDirectories: allowedDirectories, diagnostic: { stage = $0 }),
+              FinderSession.activePID == pid else { return nil }
+        complete = true
+        return FinderContext(pid: pid, application: app, window: window, collection: collection,
+                             viewport: viewport, windowFrame: windowFrame, viewportFrame: viewportFrame,
+                             groups: layout.groups, items: layout.items, sectionCounts: layout.sectionCounts,
+                             mode: layout.mode, allowedDirectories: allowedDirectories)
+    }
+
+    struct ParsedLayout {
+        let groups: [NavigationGroup]
+        let items: [BoundItem]
+        let sectionCounts: [(AXUIElement, Int)]
+        let mode: LayoutMode
+    }
+
+    /// Shared production parser; injected AX calls let tests verify full item validation.
+    func readLayout(sections: [AXUIElement], viewportFrame: CGRect, ax: AXAccess,
+                    allowedDirectories: Set<String>? = nil,
+                    diagnostic: ((String) -> Void)? = nil) -> ParsedLayout? {
         var bound: [BoundItem] = []
         var groups: [NavigationGroup] = []
         var sectionCounts: [(AXUIElement, Int)] = []
         var sectionHeaderCounts: [Int] = []
         for (sectionIndex, section) in sections.enumerated() {
-            stage = "section-\(sectionIndex)"
-            guard ax.read(section, kAXSubroleAttribute) as? String == "AXSectionList",
-                  let children = ax.elements(section, kAXChildrenAttribute, limit: Self.maximumItems + 4) else { return nil }
+            let prefix = "section-\(sectionIndex)"
+            diagnostic?("\(prefix)-role")
+            guard ax.read(section, kAXRoleAttribute) as? String == "AXList" else { return nil }
+            let subrole = ax.readResult(section, kAXSubroleAttribute)
+            switch subrole.error {
+            case .success:
+                guard let value = subrole.value as? String else {
+                    diagnostic?("\(prefix)-subrole-invalid-type"); return nil
+                }
+                guard ["AXSectionList", "AXUnknown"].contains(value) else {
+                    diagnostic?("\(prefix)-subrole-unsupported"); return nil
+                }
+            case .attributeUnsupported, .noValue:
+                // AXSubrole is optional. The IconView/owner checks happen before
+                // this parser; every wrapper, image and frame is still checked below.
+                break
+            default:
+                diagnostic?("\(prefix)-subrole-read-failed; AXError=\(subrole.error.rawValue)"); return nil
+            }
+            diagnostic?("\(prefix)-children")
+            guard let children = ax.elements(section, kAXChildrenAttribute, limit: Self.maximumItems + 4) else { return nil }
             sectionCounts.append((section, children.count))
             var items: [NavigationItem] = []
             var headerCount = 0
             for (childIndex, child) in children.enumerated() {
-                stage = "item-\(bound.count)"
+                diagnostic?("item-\(bound.count)")
                 guard let role = ax.read(child, kAXRoleAttribute) as? String else { return nil }
-                guard role == "AXGroup", let contents = ax.elements(child, kAXChildrenAttribute, limit: 4) else { return nil }
+                guard role == "AXGroup" else { diagnostic?("item-\(bound.count)-wrapper-role-unsupported"); return nil }
+                guard let contents = ax.elements(child, kAXChildrenAttribute, limit: 4) else { return nil }
                 // Observed date-group header: first wrapper contains text + button.
                 // Require that concrete signature, not merely multiple containers.
                 if childIndex == 0, contents.count == 2,
@@ -129,29 +169,30 @@ struct FinderAccessibility {
                 }
                 // The two empty, full-section decorators observed in free arrangement are
                 // not a reliable public view-mode flag. Degrade instead of guessing the mode.
-                guard contents.count == 1 else { return nil }
+                guard contents.count == 1 else { diagnostic?("item-\(bound.count)-wrapper-child-count=\(contents.count)"); return nil }
                 guard let innerRole = ax.read(contents[0], kAXRoleAttribute) as? String else { return nil }
-                guard innerRole == "AXImage", let frame = ax.frame(contents[0]),
+                guard innerRole == "AXImage" else { diagnostic?("item-\(bound.count)-content-role-unsupported"); return nil }
+                diagnostic?("item-\(bound.count)-geometry-selection")
+                guard let frame = ax.frame(contents[0]),
                       ax.isInside(contents[0], directories: allowedDirectories),
-                      ax.read(contents[0], kAXSelectedAttribute) as? Bool != nil,
-                      bound.count < Self.maximumItems else { return nil }
+                      ax.read(contents[0], kAXSelectedAttribute) as? Bool != nil else { return nil }
+                guard bound.count < Self.maximumItems else { diagnostic?("item-count-over-limit=\(Self.maximumItems)"); return nil }
                 let model = NavigationItem(id: ItemID(rawValue: "item-\(bound.count)"), frame: frame,
                                            fullyVisible: viewportFrame.contains(frame))
                 bound.append(BoundItem(model: model, wrapper: child, image: contents[0]))
                 items.append(model)
             }
-            guard !items.isEmpty else { return nil }
+            guard !items.isEmpty else { diagnostic?("\(prefix)-empty"); return nil }
             sectionHeaderCounts.append(headerCount)
             groups.append(NavigationGroup(id: GroupID(rawValue: "section-\(sectionIndex)"), items: items))
         }
-        guard !bound.isEmpty, ax.withinBudget, FinderSession.activePID == pid else { return nil }
+        guard !bound.isEmpty, ax.withinBudget else { return nil }
         let grouped = sectionHeaderCounts.allSatisfy { $0 == 1 }
-        guard grouped || (groups.count == 1 && sectionHeaderCounts == [0]) else { return nil }
-        complete = true
-        return FinderContext(pid: pid, application: app, window: window, collection: collection,
-                             viewport: viewport, windowFrame: windowFrame, viewportFrame: viewportFrame,
-                             groups: groups, items: bound, sectionCounts: sectionCounts,
-                             mode: grouped ? .grouped : .ordered, allowedDirectories: allowedDirectories)
+        guard grouped || (groups.count == 1 && sectionHeaderCounts == [0]) else {
+            diagnostic?("section-headers-unsupported"); return nil
+        }
+        return ParsedLayout(groups: groups, items: bound, sectionCounts: sectionCounts,
+                            mode: grouped ? .grouped : .ordered)
     }
 
     /// Revalidate every known item's selection and geometry before any write. In particular,

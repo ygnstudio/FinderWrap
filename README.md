@@ -2,9 +2,9 @@
 
 为 Finder 图标视图补充左右方向键跨行导航的原生 macOS 菜单栏应用。SwiftUI `MenuBarExtra`，无第三方运行时依赖，无账号、网络服务或遥测。
 
-**当前发布版本：1.0.2。** 提供 Universal 2 DMG 和 ZIP，使用 FinderWrap 专用固定自签证书，未做 Developer ID 签名或苹果公证。源码按 MIT 许可证公开；安装包不代表跨系统兼容性已全部验证。
+**当前发布版本：1.0.3。** 提供 Universal 2 DMG 和 ZIP，使用 FinderWrap 专用固定自签证书，未做 Developer ID 签名或苹果公证。源码按 MIT 许可证公开；安装包不代表跨系统兼容性已全部验证。
 
-[1.0.2 窗口焦点修复](docs/release-1.0.2.md)处理有效图标焦点被旧窗口条件拒绝的问题，已发布至 [Releases](https://github.com/ygnstudio/FinderWrap/releases/tag/v1.0.2) 并同步 Homebrew。反馈用户的 macOS 15.8.1 实际效果仍待确认。
+[1.0.3 分组识别兼容修复](docs/release-1.0.3.md)处理缺少可选分组信息时有效图标被拒绝的问题，并细分布局读取失败原因。安装包见 [Releases](https://github.com/ygnstudio/FinderWrap/releases/tag/v1.0.3)。macOS 15.7.4 / 15.8.1 反馈机的实际效果仍待确认。
 
 ## 安装
 
@@ -20,7 +20,7 @@ brew upgrade --cask ygnstudio/ygn/finderwrap
 
 也可从 [Releases](https://github.com/ygnstudio/FinderWrap/releases) 下载已验签的安装包。
 
-打开 `FinderWrap-1.0.2-b5-fixed-universal.dmg`，将 FinderWrap 拖入“应用程序”。已有预览版时，先退出应用并备份，在原位置替换，避免同时保留两个副本。详细说明见包内或 [安装说明](docs/installation.html)。
+打开 `FinderWrap-1.0.3-b6-fixed-universal.dmg`，将 FinderWrap 拖入“应用程序”。已有预览版时，先退出应用并备份，在原位置替换，避免同时保留两个副本。详细说明见包内或 [安装说明](docs/installation.html)。
 
 全新安装默认暂停。用户在系统设置开启辅助功能、输入监控，再启用“左右键自动换行”。升级保留导航偏好；从旧 ad-hoc 包首次迁移到固定证书，可能需要重新授权一次。后续包强制沿用固定证书和代码身份，实际权限保留仍需目标机器验收。若诊断为 false，需在系统设置为更新后的应用重新授权并重新开启导航；登录启动默认关闭，只响应用户显式操作。未公证应用可能被系统阻止；核对来源和校验值后，使用系统设置提供的“仍要打开”，无需关闭 Gatekeeper 或 SIP。
 
@@ -66,11 +66,11 @@ open -n ~/Applications/FinderWrap.app --args --test-fixtures "$PWD"
 
 ## 验证与隐私
 
-58 项 XCTest 覆盖窗口焦点、导航、缓存、修饰键、超时/迟到写入故障模拟和停用写入屏障。实际 Finder 输入与安装验收分别记录，模拟故障不冒充真实系统故障。
+68 项 XCTest 覆盖分组解析、窗口焦点、导航、缓存、修饰键、超时/迟到写入故障模拟和停用写入屏障。实际 Finder 输入与安装验收分别记录，模拟故障不冒充真实系统故障。
 
 独立只读 probe 不申请授权、不写选择、不监听或发送按键；JSON 只含 AX 结构、坐标、状态、错误码及耗时。实验工具不进入应用包；复制诊断不含文件名、路径、选中文本或键盘文本。
 
-- [1.0.2 发布记录](docs/release-1.0.2.md) · [发布检查表](docs/release-checklist.md)
+- [1.0.3 发布记录](docs/release-1.0.3.md) · [发布检查表](docs/release-checklist.md)
 - [测试报告](docs/test-report.md) · [兼容矩阵](docs/compatibility.md)
 - [AX 发现](docs/ax-findings.md) · [运行时设计](docs/runtime-design.md)
 - [真实输入测试授权](docs/native-test-plan.md) · [菜单栏登记诊断](docs/menubar-diagnosis.md)

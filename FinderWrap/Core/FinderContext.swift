@@ -43,6 +43,8 @@ struct AXAccess {
     var diagnostic: ((String) -> Void)? = nil
     // Injectable only at the AX boundary so tests exercise the production focus resolver.
     var copyAttribute: ((AXUIElement, String) -> (AXError, CFTypeRef?))? = nil
+    var countAttribute: ((AXUIElement, String) -> (AXError, Int))? = nil
+    var copyElements: ((AXUIElement, String, Int, Int) -> (AXError, CFArray?))? = nil
     var withinBudget: Bool { ProcessInfo.processInfo.systemUptime < deadline }
 
     func readResult(_ element: AXUIElement, _ attribute: String) -> (error: AXError, value: CFTypeRef?) {
@@ -62,28 +64,41 @@ struct AXAccess {
         return (value as! AXUIElement)
     }
     func count(_ element: AXUIElement, _ attribute: String) -> Int? {
-        guard withinBudget else { return nil }
+        guard withinBudget else { diagnostic?("count:\(attribute); budget-expired"); return nil }
         var count: CFIndex = 0
-        return AXUIElementGetAttributeValueCount(element, attribute as CFString, &count) == .success ? count : nil
+        let error: AXError
+        if let countAttribute { (error, count) = countAttribute(element, attribute) }
+        else { error = AXUIElementGetAttributeValueCount(element, attribute as CFString, &count) }
+        guard error == .success else { diagnostic?("count:\(attribute); AXError=\(error.rawValue)"); return nil }
+        return count
     }
     func elements(_ parent: AXUIElement, _ attribute: String, limit: Int) -> [AXUIElement]? {
-        guard let total = count(parent, attribute), total >= 0, total <= limit else { return nil }
+        guard let total = count(parent, attribute) else { return nil }
+        guard total >= 0 else { diagnostic?("array:\(attribute); negative-count"); return nil }
+        guard total <= limit else { diagnostic?("array:\(attribute); count-over-limit=\(total); limit=\(limit)"); return nil }
         var result: [AXUIElement] = []
         while result.count < total {
-            guard withinBudget else { return nil }
+            guard withinBudget else { diagnostic?("array:\(attribute); budget-expired"); return nil }
             var raw: CFArray?
-            guard AXUIElementCopyAttributeValues(parent, attribute as CFString, result.count, min(20, total - result.count), &raw) == .success,
-                  let raw else { return nil }
+            let error: AXError
+            if let copyElements { (error, raw) = copyElements(parent, attribute, result.count, min(20, total - result.count)) }
+            else { error = AXUIElementCopyAttributeValues(parent, attribute as CFString, result.count, min(20, total - result.count), &raw) }
+            guard error == .success else { diagnostic?("page:\(attribute); AXError=\(error.rawValue)"); return nil }
+            guard let raw else { diagnostic?("page:\(attribute); missing-array"); return nil }
+            let pageCount = CFArrayGetCount(raw)
+            guard pageCount > 0, pageCount <= total - result.count else {
+                diagnostic?("page:\(attribute); invalid-count=\(pageCount)"); return nil
+            }
             let values = raw as [AnyObject]
-            guard !values.isEmpty, values.count <= total - result.count else { return nil }
             for value in values {
-                guard CFGetTypeID(value) == AXUIElementGetTypeID() else { return nil }
+                guard CFGetTypeID(value) == AXUIElementGetTypeID() else { diagnostic?("array:\(attribute); child-not-element"); return nil }
                 let child = value as! AXUIElement
-                guard !result.contains(where: { CFEqual($0, child) }) else { return nil }
+                guard !result.contains(where: { CFEqual($0, child) }) else { diagnostic?("array:\(attribute); duplicate-child"); return nil }
                 result.append(child)
             }
         }
-        guard count(parent, attribute) == total else { return nil }
+        guard let after = count(parent, attribute) else { return nil }
+        guard after == total else { diagnostic?("array:\(attribute); count-changed"); return nil }
         return result
     }
     func frame(_ element: AXUIElement) -> CGRect? {

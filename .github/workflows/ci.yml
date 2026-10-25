@@ -32,9 +32,9 @@ jobs:
           otool -l "$app"
           otool -L "$app"
       - name: Shell syntax
-        run: for script in scripts/*.sh; do bash -n "$script"; done
-      - name: Packaging guards
-        run: python3 -m unittest discover -s Tests -p 'test_signing*.py' -v
+        run: for script in scripts/*.sh scripts/*.command; do bash -n "$script"; done
+      - name: Packaging and read-only diagnostic tests
+        run: python3 -m unittest discover -s Tests -p 'test_*.py' -v
       - name: Archive unsigned verification build
         run: bash scripts/archive-ci-build.sh
       - name: Upload verification build (not for installation)
