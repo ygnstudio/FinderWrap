@@ -2,7 +2,9 @@
 
 为 Finder 图标视图补充左右方向键跨行导航的原生 macOS 菜单栏应用。SwiftUI `MenuBarExtra`，无第三方运行时依赖，无账号、网络服务或遥测。
 
-**当前版本：1.0.1。** 提供 Universal 2 DMG 和 ZIP，使用 FinderWrap 专用固定自签证书，未做 Developer ID 签名或苹果公证。源码按 MIT 许可证公开；安装包不代表跨系统兼容性已全部验证。
+**当前发布版本：1.0.1。** 提供 Universal 2 DMG 和 ZIP，使用 FinderWrap 专用固定自签证书，未做 Developer ID 签名或苹果公证。源码按 MIT 许可证公开；安装包不代表跨系统兼容性已全部验证。
+
+main 已包含 [1.0.2 窗口焦点修复候选](docs/release-1.0.2.md)，用于处理有效图标焦点被旧窗口条件拒绝的问题。反馈用户的 macOS 15.8.1 实际效果仍待确认，Release 与 Homebrew 暂保持 1.0.1。
 
 ## 安装
 
@@ -64,7 +66,7 @@ open -n ~/Applications/FinderWrap.app --args --test-fixtures "$PWD"
 
 ## 验证与隐私
 
-48 项 XCTest 覆盖导航、缓存、修饰键、超时/迟到写入故障模拟和停用写入屏障。实际 Finder 输入与安装验收分别记录，模拟故障不冒充真实系统故障。
+58 项 XCTest 覆盖窗口焦点、导航、缓存、修饰键、超时/迟到写入故障模拟和停用写入屏障。实际 Finder 输入与安装验收分别记录，模拟故障不冒充真实系统故障。
 
 独立只读 probe 不申请授权、不写选择、不监听或发送按键；JSON 只含 AX 结构、坐标、状态、错误码及耗时。实验工具不进入应用包；复制诊断不含文件名、路径、选中文本或键盘文本。
 

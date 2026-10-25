@@ -41,14 +41,21 @@ final class FinderContext: @unchecked Sendable {
 struct AXAccess {
     let deadline: TimeInterval
     var diagnostic: ((String) -> Void)? = nil
+    // Injectable only at the AX boundary so tests exercise the production focus resolver.
+    var copyAttribute: ((AXUIElement, String) -> (AXError, CFTypeRef?))? = nil
     var withinBudget: Bool { ProcessInfo.processInfo.systemUptime < deadline }
 
-    func read(_ element: AXUIElement, _ attribute: String) -> CFTypeRef? {
-        guard withinBudget else { return nil }
+    func readResult(_ element: AXUIElement, _ attribute: String) -> (error: AXError, value: CFTypeRef?) {
+        guard withinBudget else { diagnostic?("read:\(attribute); budget-expired"); return (.cannotComplete, nil) }
         var value: CFTypeRef?
-        let result = AXUIElementCopyAttributeValue(element, attribute as CFString, &value)
-        guard result == .success else { diagnostic?("read:\(attribute); AXError=\(result.rawValue)"); return nil }
-        return value
+        let result: AXError
+        if let copyAttribute { (result, value) = copyAttribute(element, attribute) }
+        else { result = AXUIElementCopyAttributeValue(element, attribute as CFString, &value) }
+        if result != .success { diagnostic?("read:\(attribute); AXError=\(result.rawValue)") }
+        return (result, result == .success ? value : nil)
+    }
+    func read(_ element: AXUIElement, _ attribute: String) -> CFTypeRef? {
+        readResult(element, attribute).value
     }
     func element(_ parent: AXUIElement, _ attribute: String) -> AXUIElement? {
         guard let value = read(parent, attribute), CFGetTypeID(value) == AXUIElementGetTypeID() else { return nil }

@@ -13,6 +13,7 @@ struct MonitorStatus: Codable, Sendable {
     var arrowEvents = 0
     var lastArrowFlags: UInt64 = 0
     var lastArrowFnDown = false
+    var captureAtLastArrow = "not-observed"
     var captureDiagnostic = "not-started"
     var lastFinderCapture = "not-observed"
     var cacheReady = false
@@ -135,6 +136,7 @@ final class KeyboardMonitor: @unchecked Sendable {
             lock.withLock {
                 state.arrowEvents += 1; state.lastArrowFlags = event.flags.rawValue
                 state.lastArrowFnDown = fnKeyDown
+                state.captureAtLastArrow = state.captureDiagnostic
             }
         }
         guard type == .keyDown, !lock.withLock({ stopping }),

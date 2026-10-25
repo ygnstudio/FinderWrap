@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-25",
+  "source": "user-provided diagnostics plus local read-only validation",
+  "reportedOS": "15.8.1 (24H32)",
+  "localOS": "26.6.2 (25G83)",
+  "appVersion": "1.0.1",
+  "xctestPassed": 48,
+  "signingPolicyTestsPassed": 5,
+  "appSourceChanged": false,
+  "installedAppReplaced": false,
+  "permissionsChanged": false,
+  "navigationFixVerifiedOnReportedOS": false,
+  "scriptSHA256": "465c05e0cee4a443a2ed6d750124d0e12952ad686dc41eacf6fe70c384d0ad81",
+  "localSampleSummary": {
+    "mainWindowCannotComplete": 1,
+    "initialWindowAndFocusGatesPassed": 5,
+    "structureTruncated": true
+  },
+  "unknown": "which focused-standard-window subcondition fails on the reporting machine"
+}

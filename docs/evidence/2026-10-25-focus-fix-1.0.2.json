@@ -1,0 +1,62 @@
+{
+  "date": "2026-10-25",
+  "status": "local-fix-candidate-reporter-runtime-pending",
+  "red": {
+    "tests": 58,
+    "failedAssertions": 8,
+    "newTestMethods": 10,
+    "oldGuardBehaviorPreserved": true
+  },
+  "green": {
+    "xctestPassed": 58,
+    "signingPolicyTestsPassed": 5
+  },
+  "nativeAX": {
+    "backwardWrapConfirmed": true,
+    "fixtureMatched": true,
+    "forwardWrapConfirmed": true,
+    "originalSelectionRestored": true,
+    "sourceID": "item-6",
+    "targetID": "item-7",
+    "tier": "native-AX-adapter-no-keyboard-events"
+  },
+  "nativeOS": "26.6.2 (25G83)",
+  "reportedOSVerified": false,
+  "pushReview": {
+    "isolatedXCTestPassed": 58,
+    "isolatedSigningPolicyTestsPassed": 5,
+    "focusSmokeGuard": {
+      "tier": "stub-only-control-flow-not-native-AX",
+      "currentChecksPassed": 4,
+      "legacyChecksFailed": 2,
+      "nativeRerunAfterGuardChange": false
+    }
+  },
+  "fixedSignature": {
+    "bundleIdentifier": "dev.finderwrap.finderwrap",
+    "version": "1.0.2",
+    "build": "5",
+    "certificateSHA256": "126C495F5F54B4E3BE785F6A5891D4F443E5C818510929C00C58249888EBEA10",
+    "notarized": false,
+    "signatures": [
+      {
+        "architecture": "arm64",
+        "designatedRequirement": "designated => identifier \"dev.finderwrap.finderwrap\" and certificate leaf = H\"13a2c4c60e6bc4416657909be6477824af0b81e2\""
+      },
+      {
+        "architecture": "x86_64",
+        "designatedRequirement": "designated => identifier \"dev.finderwrap.finderwrap\" and certificate leaf = H\"13a2c4c60e6bc4416657909be6477824af0b81e2\""
+      }
+    ]
+  },
+  "sameCertificateAndDRAsFixed101": true,
+  "installedApplicationReplaced": false,
+  "deliveryAtLocalValidation": {
+    "published": false,
+    "committed": false
+  },
+  "hashes": {
+    "FinderWrap-1.0.2-b5-fixed-universal.dmg": "df4d7070927b88504d923ee5833a5bb0a43e51f6cbb5bbd159587da5ca771d9b",
+    "FinderWrap-1.0.2-b5-fixed-universal.zip": "e37a6855e4e296881ef40dcabcae470e3014ed6077a51836b22eba2114ef5dcb"
+  }
+}

@@ -10,7 +10,7 @@
 
 ## GitHub Actions
 
-推送或 PR 运行 48 项 XCTest、Universal 2 Release 构建及打包防护测试。每次上传明确标为 `verification-unsigned` 的验证归档，**不要用它覆盖已安装应用**。
+推送或 PR 运行 58 项 XCTest、Universal 2 Release 构建及打包防护测试。每次上传明确标为 `verification-unsigned` 的验证归档，**不要用它覆盖已安装应用**。
 
 仅 `main` 的 push / workflow_dispatch 且仓库变量 `FINDERWRAP_SIGNING_ENABLED=true` 时运行固定签名步骤。须先完成证书指纹配置，并设置两个仓库 Actions Secrets：
 

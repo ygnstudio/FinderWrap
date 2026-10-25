@@ -15,6 +15,7 @@ enum DiagnosticService {
         Horizontal key events: \(status.arrowEvents)
         Last horizontal key flags: 0x\(String(status.lastArrowFlags, radix: 16))
         Fn key down on last horizontal key: \(status.lastArrowFnDown)
+        Capture at last horizontal key: \(status.captureAtLastArrow)
         Last decision: \(status.lastDecision)
         Confirmed wraps: \(status.committed)
         Unchanged writes: \(status.unchanged)
