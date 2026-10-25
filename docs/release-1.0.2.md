@@ -1,6 +1,6 @@
-# FinderWrap 1.0.2 · 窗口焦点兼容修复候选
+# FinderWrap 1.0.2 · 窗口焦点兼容修复
 
-2026-10-25，build 5。固定签名 Universal 2 修复候选；本记录对应本地验收，GitHub Release 和 Homebrew 尚未更新。macOS 15.8.1 的反馈机器仍待升级确认，不声称本轮已完成该系统实机验收。
+2026-10-26 正式发布，build 5。[GitHub Release](https://github.com/ygnstudio/FinderWrap/releases/tag/v1.0.2) 和 Homebrew 均已更新。macOS 15.8.1 的反馈机器仍待升级确认，不声称本轮已完成该系统实机验收。以下保留 2026-10-25 的本地回归证据，并补充公开附件核验。
 
 ## 问题与修复
 
@@ -39,10 +39,12 @@
 - `FinderWrap-1.0.2-b5-fixed-universal.zip`
 - 同名 `.sha256` 和 `.signing.json`
 
-本地文件位于 `build/packages/`；main 的固定签名 CI 另行生成候选安装包。复用此前的 FinderWrap 专用证书，不创建新证书，不降级为 ad-hoc。临时导入钥匙串在打包后删除，原搜索列表恢复。
+公开附件直接采用提交 `774e0a263a269e3d83878971a4d818d0102c2cff` 的[已通过 CI 构建](https://github.com/ygnstudio/FinderWrap/actions/runs/40206809586)，发布标签指向同一提交。公开文件已重新下载，四个附件均与 CI 文件逐字节一致；DMG 和 ZIP 内的实际应用逐文件一致，两架构固定签名通过核验。Homebrew 提交 `709f8ecb038915ed4ce09b2862e11e02014984eb` 更新到 `1.0.2,5`，DMG 校验值与公开附件一致。见[发布证据](evidence/2026-10-26-release-1.0.2.json)。
+
+复用此前的 FinderWrap 专用证书，不创建新证书，不降级为 ad-hoc。早期本地构建及其校验值仅作为本地验收记录；公开分发以本次 CI 附件为准。
 
 新旧固定签名包的 bundle identifier、叶证书 SHA-256 和两架构 designated requirement 完全一致；ZIP 中的实际应用通过严格验签，DMG 完整性与文件哈希通过。仍没有苹果公证。身份一致是升级核验依据，具体机器上的 TCC 保留仍以安装读回为准；从更早 ad-hoc 包切换到固定证书是另一种迁移。
 
-## 下一步
+## 反馈验证
 
-将本地安装包交给 macOS 15.8.1 反馈用户升级确认。若仍不生效，1.0.2 的内置诊断会直接给出具体失败分支，无需先运行独立终端探针。效果确认后再安排 GitHub Release 和 Homebrew 更新。
+macOS 15.8.1 反馈用户可通过 Releases 或 Homebrew 升级确认。若仍不生效，1.0.2 的内置诊断会直接给出具体失败分支，无需先运行独立终端探针。公开发布不替代反馈机器上的实际验收。

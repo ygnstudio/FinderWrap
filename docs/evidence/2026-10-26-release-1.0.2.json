@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-26",
+  "timezone": "Asia/Shanghai",
+  "version": "1.0.2",
+  "build": "5",
+  "tag": "v1.0.2",
+  "sourceCommit": "774e0a263a269e3d83878971a4d818d0102c2cff",
+  "ciRun": "https://github.com/ygnstudio/FinderWrap/actions/runs/40206809586",
+  "release": "https://github.com/ygnstudio/FinderWrap/releases/tag/v1.0.2",
+  "homebrewCommit": "709f8ecb038915ed4ce09b2862e11e02014984eb",
+  "homebrewVersion": "1.0.2,5",
+  "publicAssetsMatchCI": true,
+  "dmgAndZipAppFilesMatch": true,
+  "fixedIdentityMatches101": true,
+  "architectures": ["arm64", "x86_64"],
+  "notarized": false,
+  "installedApplicationReplaced": false,
+  "reportedMacOS1581RuntimeVerified": false,
+  "upgradePermissionRetentionVerified": false,
+  "sha256": {
+    "FinderWrap-1.0.2-b5-fixed-universal.dmg": "e1ce7b2bf68d342800eb988ae8644a1bca7083eb97b161eebc2fbb17aa148e27",
+    "FinderWrap-1.0.2-b5-fixed-universal.zip": "04ef23e1f717754cf49f208374abaf60aba317a807dd7c0d75f7761a57211fbf",
+    "FinderWrap-1.0.2-b5-fixed-universal.sha256": "2554216ca9e27be585968f2b5f0ca3c894fd2ac07d20502f8be6fa5a711ea397",
+    "FinderWrap-1.0.2-b5-fixed-universal.signing.json": "f2075b900ece96b5279b8109fc92e98b7d829f57a17e2b7197fcfbb314964dc9"
+  }
+}
