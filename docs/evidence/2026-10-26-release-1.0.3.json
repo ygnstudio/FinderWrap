@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-26",
+  "tag": "v1.0.3",
+  "version": "1.0.3",
+  "build": "6",
+  "releaseURL": "https://github.com/ygnstudio/FinderWrap/releases/tag/v1.0.3",
+  "releaseCommit": "5a4ee2365ddde4481689802cef1dcc53ab652de3",
+  "ciRun": 40222032070,
+  "ciConclusion": "success",
+  "assets": {
+    "FinderWrap-1.0.3-b6-fixed-universal.dmg": {
+      "sha256": "1258fadf79b7fa4f53e1b30f96343fc6e2238f85209b2d597c5644b73a0899ed",
+      "url": "https://github.com/ygnstudio/FinderWrap/releases/download/v1.0.3/FinderWrap-1.0.3-b6-fixed-universal.dmg"
+    },
+    "FinderWrap-1.0.3-b6-fixed-universal.sha256": {
+      "sha256": "b2e0ca66dbf2cb69e470024bf3a8762bff06b59789a8740768fc39bb49a8c96b",
+      "url": "https://github.com/ygnstudio/FinderWrap/releases/download/v1.0.3/FinderWrap-1.0.3-b6-fixed-universal.sha256"
+    },
+    "FinderWrap-1.0.3-b6-fixed-universal.signing.json": {
+      "sha256": "6dc99cf39ee06a66557015d70e113c5c54780e7c773518d999d69aa460daad5e",
+      "url": "https://github.com/ygnstudio/FinderWrap/releases/download/v1.0.3/FinderWrap-1.0.3-b6-fixed-universal.signing.json"
+    },
+    "FinderWrap-1.0.3-b6-fixed-universal.zip": {
+      "sha256": "47a55e030b89489351cd86438b38717530a140039c227f7accd1a5192b73c7d6",
+      "url": "https://github.com/ygnstudio/FinderWrap/releases/download/v1.0.3/FinderWrap-1.0.3-b6-fixed-universal.zip"
+    }
+  },
+  "publicReadbackMatchesCI": true,
+  "zipAndDmgAppByteIdentical": true,
+  "sameCertificateAndDRAsFixed102": true,
+  "signing": {
+    "bundleIdentifier": "dev.finderwrap.finderwrap",
+    "version": "1.0.3",
+    "build": "6",
+    "certificateSHA256": "126C495F5F54B4E3BE785F6A5891D4F443E5C818510929C00C58249888EBEA10",
+    "notarized": false,
+    "signatures": [
+      {
+        "architecture": "arm64",
+        "designatedRequirement": "designated => identifier \"dev.finderwrap.finderwrap\" and certificate leaf = H\"13a2c4c60e6bc4416657909be6477824af0b81e2\""
+      },
+      {
+        "architecture": "x86_64",
+        "designatedRequirement": "designated => identifier \"dev.finderwrap.finderwrap\" and certificate leaf = H\"13a2c4c60e6bc4416657909be6477824af0b81e2\""
+      }
+    ]
+  },
+  "homebrewCommit": "736019e0557f49befa16077839474298ee3cfe21",
+  "homebrewVersion": "1.0.3,6",
+  "homebrewCheckRun": 40222308274,
+  "homebrewDMGMatchesRelease": true,
+  "installedApplicationReplaced": false,
+  "nativeNavigationVerified": false,
+  "reporterMachinesVerified": false
+}

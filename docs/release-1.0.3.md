@@ -1,6 +1,6 @@
 # FinderWrap 1.0.3 · 分组识别兼容修复
 
-2026-10-26，build 6，正式版发布准备。安装包将采用同一提交的固定签名 CI 产物；发布完成后补充附件读回记录。macOS 15.7.4 / 15.8.1 反馈机的实际效果仍待确认。
+2026-10-26 正式发布，build 6。[GitHub Release](https://github.com/ygnstudio/FinderWrap/releases/tag/v1.0.3) 和 Homebrew 已更新，安装包采用提交 `5a4ee23` 的固定签名 CI 产物。macOS 15.7.4 / 15.8.1 反馈机的实际效果仍待确认。
 
 ## 变更
 
@@ -23,8 +23,14 @@
 
 ## 分发和升级
 
-固定签名 CI 附件为 `FinderWrap-1.0.3-b6-fixed-universal.dmg`、ZIP、SHA-256 和签名清单。复用原固定证书、bundle identifier 与 designated requirement，不创建或更换证书，不生成 ad-hoc 安装包。
+已公开的固定签名 CI 附件为 `FinderWrap-1.0.3-b6-fixed-universal.dmg`、ZIP、SHA-256 和签名清单。复用原固定证书、bundle identifier 与 designated requirement，不创建或更换证书，不生成 ad-hoc 安装包。
 
 支持 macOS 15+ 编译目标、Universal 2；没有 Developer ID 或苹果公证。固定身份应保持升级连续性，但具体机器上的授权保留仍需实际验证。从早期 ad-hoc 包迁移可能需要重新授权。不会在本次发布中替换维护者现有安装版。
 
 若仍不生效，请提供 1.0.3 内置诊断；只报告该机的实际效果，不将一次升级当作所有 macOS 15 环境兼容的证明。
+
+## 公开附件核验
+
+[CI 40222032070](https://github.com/ygnstudio/FinderWrap/actions/runs/40222032070) 全部通过；标签指向同一构建提交。DMG 完整性、两架构固定签名、ZIP 目录内容及签名清单均核对通过，DMG 与 ZIP 中实际应用逐文件一致。公开四个附件重新下载后与 CI 逐字节一致。证书指纹、应用标识、两架构 designated requirement 与 1.0.2 相同。
+
+Homebrew 提交 `736019e` 更新版本至 `1.0.3,6`，DMG SHA-256 与公开文件一致；本地 Ruby 语法和 tap 的 14 项测试通过。机器可读记录见 [发布证据](evidence/2026-10-26-release-1.0.3.json)。没有安装或替换本机应用。
