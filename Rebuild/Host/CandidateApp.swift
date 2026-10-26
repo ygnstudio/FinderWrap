@@ -12,12 +12,14 @@ final class CandidateAppState: ObservableObject {
     @Published var launchIssue: String?
     @Published var listWrap = UserDefaults.standard.bool(forKey: "listWrapEnabled")
     @Published var galleryCycle = (UserDefaults.standard.object(forKey: "galleryCycleEnabled") as? Bool) ?? true
+    @Published var shiftWrap = (UserDefaults.standard.object(forKey: "shiftWrapEnabled") as? Bool) ?? true
     private let monitor = FinderWrapMonitor()
     private var timer: Timer?
 
     init() {
         monitor.setListWrap(listWrap)
         monitor.setGalleryCycle(galleryCycle)
+        monitor.setShiftWrap(shiftWrap)
         timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in self?.refresh() }
         }
@@ -119,6 +121,12 @@ final class CandidateAppState: ObservableObject {
         monitor.setGalleryCycle(value)
     }
 
+    func setShiftWrap(_ value: Bool) {
+        shiftWrap = value
+        UserDefaults.standard.set(value, forKey: "shiftWrapEnabled")
+        monitor.setShiftWrap(value)
+    }
+
     func settings(_ suffix: String) {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?" + suffix) {
             NSWorkspace.shared.open(url)
@@ -204,6 +212,11 @@ private struct CandidateMenuPanel: View {
                           isOn: Binding(get: { state.galleryCycle }, set: { state.setGalleryCycle($0) }),
                           help: l.t("画廊视图里从第一张继续左键会回到最后一张，从最后一张继续右键会回到第一张。",
                                     "In Gallery view, left at the first item wraps to the last; right at the last item wraps to the first."))
+                toggleRow(l.t("Shift 跨行扩选", "Shift: extend across rows"),
+                          icon: "shift",
+                          isOn: Binding(get: { state.shiftWrap }, set: { state.setShiftWrap($0) }),
+                          help: l.t("按住 Shift 扩选时，到行尾/行首继续跨到相邻行；关闭后保持 Finder 原生，到行尾就停住。",
+                                    "Hold Shift and extend across row boundaries; when off, Finder keeps its native behaviour and stops at the row edge."))
             }
             section(l.t("界面", "Interface")) {
                 optionRow(l.t("语言", "Language"), icon: "globe", selection: $languageRaw) {
@@ -239,7 +252,7 @@ private struct CandidateMenuPanel: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text("FinderWrap").font(.system(size: 13, weight: .semibold))
-                Text("1.0.10").font(.caption2).foregroundStyle(.secondary)
+                Text("1.0.11").font(.caption2).foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
         }

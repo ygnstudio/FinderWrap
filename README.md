@@ -10,7 +10,7 @@ Finder 图标视图的左右键换行工具：菜单栏常驻 → 后台读取�
 
 - **图标视图跨行**：行尾按右键进入下一行第一个，行首按左键回到上一行最后一个；整个图标区首尾也会循环，不再卡在行尾。
 - **全场景覆盖**：普通 / 搜索 / 智能 / iCloud 文件夹、按种类分组、行被窗口裁切、桌面图标、Quick Look（Finder 前台、焦点在预览窗口时继续驱动底下的图标布局）、多选（以最外侧选中项定位）。
-- **Shift 跨行扩选**：按住 Shift + 左右键时，选区在行尾/行首继续跨到相邻行并保持整段多选；覆盖 Finder 已加载的行，未加载的滚动边界会安全停止，文档首尾停止、不循环。
+- **Shift 跨行扩选**：按住 Shift + 左右键时，选区在行尾/行首继续跨到相邻行并保持整段多选；覆盖 Finder 已加载的行，未加载的滚动边界会安全停止，文档首尾停止、不循环。可在面板的“视图”里单独关闭，关闭后保持 Finder 原生。
 - **画廊到头循环**：缩略图条到两端时循环；左右键全由应用接管（读选择 → 算目标 → 写选择 + 设焦点 + 滚动），不依赖 Finder 自身的键盘光标。
 - **列表左右切项**（独立开关，默认关闭）：左/右 = 上一项/下一项；端点按键被吞掉、保持原选择，绝不把右键变成“展开文件夹”。
 - **零常驻窗口**：只驻留菜单栏（`LSUIElement`，无 Dock 图标与主窗口）；点图标即可开关、查看权限与状态、复制诊断或退出。
@@ -33,7 +33,7 @@ Finder 图标视图的左右键换行工具：菜单栏常驻 → 后台读取�
 | 列表视图 | 左右键切上一项/下一项（独立开关）；**端点不循环** |
 | 分栏、重命名、搜索框等编辑态 | 保持 Finder 原生 |
 
-- 当前版本：**1.0.10（build 13）**，仅 Apple Silicon（arm64），最低 macOS 13。
+- 当前版本：**1.0.11（build 14）**，仅 Apple Silicon（arm64），最低 macOS 13。
 - Intel 用户请继续使用 1.0.3；macOS 15 / 27 尚未实机验收，见 [兼容性](docs/compatibility.md)。
 
 ## 目录结构
@@ -104,7 +104,7 @@ brew uninstall --cask ygnstudio/ygn/finderwrap # 卸载
 或从 [Releases](https://github.com/ygnstudio/FinderWrap/releases/latest) 下载 DMG/ZIP，并用同名 `.sha256` 校验：
 
 ```sh
-shasum -a 256 -c FinderWrap-1.0.10-b13-fixed-arm64.sha256
+shasum -a 256 -c FinderWrap-1.0.11-b14-fixed-arm64.sha256
 ```
 
 - 要求 Apple Silicon（arm64）、macOS 13+；1.0.6 起不再提供 Universal 包，Intel 用户保留 1.0.3。
@@ -160,7 +160,7 @@ bash scripts/package.sh --fixed  # 固定证书已配置时生成 DMG/ZIP
 1. `main` 推送触发 [CI](.github/workflows/ci.yml)：单元测试 → arm64 Release → 架构与最低系统检查 → 未签名归档 + 固定签名安装包（`FinderWrap-fixed-signature-<sha>`）。
 2. 下载固定签名附件，校验 SHA-256 与 `signing-policy.py verify`，生成 `vX.Y.Z` Release（DMG / ZIP / sha256 / signing.json 四个附件）。
 3. Homebrew cask 更新 `version`、`sha256` 与 `depends_on arch/macos`。
-4. 1.0.10 的固定签名附件来自本次发布提交的 CI 运行（见 [Releases](https://github.com/ygnstudio/FinderWrap/releases)）；macOS 15/27 实机验收仍是独立事项。
+4. 1.0.11 的固定签名附件来自本次发布提交的 CI 运行（见 [Releases](https://github.com/ygnstudio/FinderWrap/releases)）；macOS 15/27 实机验收仍是独立事项。
 
 ### Homebrew 维护
 

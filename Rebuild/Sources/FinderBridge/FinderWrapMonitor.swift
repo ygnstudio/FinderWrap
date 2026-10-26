@@ -39,6 +39,7 @@ public final class FinderWrapMonitor {
     private enum WriteResult { case confirmed, rejected, uncertain }
 
     private let lock = NSLock()
+    private let captureLock = NSLock()
     private let reader = GridReader()
     private let engine = WrapEngine()
     private let refreshQueue = DispatchQueue(label: "dev.finderwrap.grid", qos: .utility)
@@ -57,6 +58,7 @@ public final class FinderWrapMonitor {
     private var listTrace = ""
     private var listWrapEnabled = UserDefaults.standard.bool(forKey: "listWrapEnabled")
     private var galleryCycleEnabled = (UserDefaults.standard.object(forKey: "galleryCycleEnabled") as? Bool) ?? true
+    private var shiftWrapEnabled = (UserDefaults.standard.object(forKey: "shiftWrapEnabled") as? Bool) ?? true
     private var shiftState: ShiftWrapState?
 
     public init() {}
@@ -129,6 +131,13 @@ public final class FinderWrapMonitor {
         lock.lock(); galleryCycleEnabled = value; lock.unlock()
     }
 
+    public func setShiftWrap(_ value: Bool) {
+        lock.lock()
+        shiftWrapEnabled = value
+        if !value { shiftState = nil }
+        lock.unlock()
+    }
+
     /// Called with the lock held.
     private func stopLocked() {
         snapshot = nil
@@ -148,7 +157,10 @@ public final class FinderWrapMonitor {
     }
 
     private func runTap() {
-        let mask = CGEventMask(1) << CGEventType.keyDown.rawValue
+        let mask = (CGEventMask(1) << CGEventType.keyDown.rawValue)
+            | (CGEventMask(1) << CGEventType.flagsChanged.rawValue)
+            | (CGEventMask(1) << CGEventType.tapDisabledByTimeout.rawValue)
+            | (CGEventMask(1) << CGEventType.tapDisabledByUserInput.rawValue)
         guard let eventTap = CGEvent.tapCreate(
             tap: .cgSessionEventTap, place: .headInsertEventTap, options: .defaultTap,
             eventsOfInterest: mask,
@@ -230,27 +242,14 @@ public final class FinderWrapMonitor {
             lock.unlock()
             return
         }
+        captureLock.lock()
         let started = ProcessInfo.processInfo.systemUptime
         do {
             let fresh = try reader.capture(pid: finder.processIdentifier)
-            let elapsed = (ProcessInfo.processInfo.systemUptime - started) * 1000
-            lock.lock()
-            guard enabled else { lock.unlock(); return }
-            snapshot = fresh
-            appendCaptureLog("ok(rows=\(fresh.layout.rows.count),cells=\(fresh.layout.cells.count) quickLook=\(fresh.quickLook))")
-            lastFailure = ""
-            statusValue.state = .ready
-            statusValue.message = fresh.quickLook
-                ? "Quick Look：\(fresh.layout.rows.count) 行 · \(fresh.layout.cells.count) 个图标"
-                : "已就绪：\(fresh.layout.rows.count) 行 · \(fresh.layout.cells.count) 个图标"
-            statusValue.reason = "ready"
-            statusValue.itemCount = fresh.layout.cells.count
-            statusValue.rowCount = fresh.layout.rows.count
-            statusValue.captureMS = elapsed
-            statusValue.gridRole = fresh.gridRole
-            statusValue.quickLook = fresh.quickLook
-            lock.unlock()
+            captureLock.unlock()
+            store(fresh, elapsed: (ProcessInfo.processInfo.systemUptime - started) * 1000)
         } catch let failure as GridFailure {
+            captureLock.unlock()
             lock.lock()
             snapshot = nil
             appendCaptureLog("fail(\(failure.stage))")
@@ -269,6 +268,7 @@ public final class FinderWrapMonitor {
             statusValue.quickLook = false
             lock.unlock()
         } catch {
+            captureLock.unlock()
             lock.lock()
             snapshot = nil
             appendCaptureLog("fail(unknown)")
@@ -277,6 +277,46 @@ public final class FinderWrapMonitor {
             statusValue.reason = "read-failed"
             lock.unlock()
         }
+    }
+
+    /// Publishes a capture under the state lock. Called from both the periodic
+    /// refresh queue and the input path when a stale snapshot is detected.
+    private func store(_ fresh: GridSnapshot, elapsed: Double) {
+        lock.lock()
+        guard enabled else { lock.unlock(); return }
+        snapshot = fresh
+        appendCaptureLog("ok(rows=\(fresh.layout.rows.count),cells=\(fresh.layout.cells.count) quickLook=\(fresh.quickLook))")
+        lastFailure = ""
+        statusValue.state = .ready
+        statusValue.message = fresh.quickLook
+            ? "Quick Look：\(fresh.layout.rows.count) 行 · \(fresh.layout.cells.count) 个图标"
+            : "已就绪：\(fresh.layout.rows.count) 行 · \(fresh.layout.cells.count) 个图标"
+        statusValue.reason = "ready"
+        statusValue.itemCount = fresh.layout.cells.count
+        statusValue.rowCount = fresh.layout.rows.count
+        statusValue.captureMS = elapsed
+        statusValue.gridRole = fresh.gridRole
+        statusValue.quickLook = fresh.quickLook
+        lock.unlock()
+    }
+
+    /// Recaptures on the input thread when the periodic snapshot is stale, so a
+    /// key is never decided against a layout that has already moved. The capture
+    /// lock serialises this with the refresh queue and keeps AX calls bounded.
+    private func captureSynchronously() -> GridSnapshot? {
+        lock.lock()
+        let isEnabled = enabled
+        lock.unlock()
+        guard isEnabled else { return nil }
+        guard let finder = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder").first else {
+            return nil
+        }
+        captureLock.lock()
+        defer { captureLock.unlock() }
+        let started = ProcessInfo.processInfo.systemUptime
+        guard let fresh = try? reader.capture(pid: finder.processIdentifier) else { return nil }
+        store(fresh, elapsed: (ProcessInfo.processInfo.systemUptime - started) * 1000)
+        return fresh
     }
 
     // MARK: - Keys
@@ -306,7 +346,9 @@ public final class FinderWrapMonitor {
         let modifiers = event.flags.intersection(blocked)
         guard modifiers.isEmpty || modifiers == .maskShift,
               !CGEventSource.keyState(.combinedSessionState, key: 63),
-              !CGEventSource.keyState(.hidSystemState, key: 63) else { return pass }
+              !CGEventSource.keyState(.hidSystemState, key: 63) else {
+            return pass
+        }
         let shiftOnly = modifiers == .maskShift
         let direction: HorizontalDirection = code == 123 ? .left : .right
         if !shiftOnly {
@@ -336,12 +378,20 @@ public final class FinderWrapMonitor {
         }
 
         lock.lock()
-        let current = snapshot
+        let currentSnapshot = snapshot
         let now = ProcessInfo.processInfo.systemUptime
         lock.unlock()
-        guard let current, now - current.capturedAt <= 1.5 else {
+        guard var current = currentSnapshot else {
             record("no-layout")
             return pass
+        }
+        if now - current.capturedAt > 1.5 {
+            if let fresh = captureSynchronously() {
+                current = fresh
+            } else {
+                record("no-layout")
+                return pass
+            }
         }
 
         if current.quickLook {
@@ -357,7 +407,12 @@ public final class FinderWrapMonitor {
             }
         }
 
-        guard let selection = reader.selection(for: current) else {
+        var selection = reader.selection(for: current)
+        if selection == nil, let fresh = captureSynchronously() {
+            current = fresh
+            selection = reader.selection(for: fresh)
+        }
+        guard let selection else {
             record("selection-unavailable")
             return pass
         }
@@ -375,8 +430,15 @@ public final class FinderWrapMonitor {
         }
         if shiftOnly {
             lock.lock()
+            let shiftEnabled = shiftWrapEnabled
             let state = shiftState
             lock.unlock()
+            guard shiftEnabled else {
+                // The user asked to keep Finder's native Shift range selection.
+                record("shift-native-disabled")
+                lock.lock(); shiftState = nil; lock.unlock()
+                return pass
+            }
             let shiftDecision = engine.shiftDecide(layout: current.layout, selection: selection,
                                                    direction: direction, state: state)
             guard case let .extend(urls, nextState) = shiftDecision else {
@@ -409,22 +471,59 @@ public final class FinderWrapMonitor {
             lock.unlock()
             return nil
         }
+        switch tryGridWrap(current, direction: direction, selection: selection) {
+        case .handled:
+            return nil
+        case .passed:
+            return pass
+        case .retry:
+            // The layout or frames moved between capture and key handling.
+            // Recapture once on the input path and re-decide instead of giving
+            // the key back to Finder, which would be a no-op at a row edge.
+            guard let fresh = captureSynchronously() else {
+                record("frames-moved-unrecoverable")
+                forceRefresh()
+                return pass
+            }
+            switch tryGridWrap(fresh, direction: direction, selection: nil) {
+            case .handled:
+                return nil
+            case .passed:
+                return pass
+            case .retry:
+                record("frames-moved")
+                forceRefresh()
+                return pass
+            }
+        }
+    }
+
+    /// Reusable decision path for icon/desktop surfaces. `.retry` means the
+    /// snapshot no longer matches the live layout, so the caller recaptures.
+    private enum GridAttempt {
+        case handled
+        case passed
+        case retry
+    }
+
+    private func tryGridWrap(_ current: GridSnapshot, direction: HorizontalDirection,
+                             selection: GridSelection?) -> GridAttempt {
+        guard let selection = selection ?? reader.selection(for: current) else { return .retry }
         let decision = engine.decide(layout: current.layout, selection: selection, direction: direction)
         guard case let .wrap(from, to) = decision else {
             record("native")
-            return pass
+            return .passed
         }
         guard let source = current.cells.first(where: { $0.url == from }),
               let target = current.cells.first(where: { $0.url == to }) else {
             record("stale-cells")
-            return pass
+            return .retry
         }
         guard framesMatch(source: source, target: target) else {
-            record("frames-moved")
-            forceRefresh()
-            return pass
+            return .retry
         }
-        return performGridWrap(current, source: source, target: target) ? nil : pass
+        let handled = performGridWrap(current, source: source, target: target)
+        return handled ? .handled : .passed
     }
 
     /// Finer-style takeover for gallery view: every left/right press is computed
@@ -444,10 +543,17 @@ public final class FinderWrapMonitor {
         guard let target = current.cells.first(where: { $0.url == row[targetIndex].url }) else { return false }
 
         AX.setTimeout(current.grid, 0.1)
-        _ = AXUIElementSetAttributeValue(current.grid, kAXSelectedChildrenAttribute as CFString, [target.wrapper] as CFArray)
-        Thread.sleep(forTimeInterval: 0.02)
-        let readback = AX.elements(current.grid, kAXSelectedChildrenAttribute)
-        let confirmed = readback.count == 1 && (CFEqual(readback[0], target.wrapper) || CFEqual(readback[0], target.image))
+        _ = AXUIElementSetAttributeValue(current.grid, kAXSelectedChildrenAttribute as CFString,
+                                         [target.wrapper] as CFArray)
+        var confirmed = false
+        for _ in 0..<2 {
+            Thread.sleep(forTimeInterval: 0.03)
+            let readback = AX.elements(current.grid, kAXSelectedChildrenAttribute)
+            if readback.count == 1 && (CFEqual(readback[0], target.wrapper) || CFEqual(readback[0], target.image)) {
+                confirmed = true
+                break
+            }
+        }
         guard confirmed else {
             record("gallery-write-failed idx=\(index)/\(row.count)")
             return false
@@ -455,7 +561,9 @@ public final class FinderWrapMonitor {
         if AX.isSettable(current.grid, kAXFocusedAttribute) {
             _ = AXUIElementSetAttributeValue(current.grid, kAXFocusedAttribute as CFString, kCFBooleanTrue)
         }
-        scrollToVisible(target.wrapper, children: [target.image])
+        if !isFullyVisible(target, in: current.viewportFrame) {
+            scrollToVisible(target.wrapper, children: [target.image])
+        }
         lock.lock()
         statusValue.wrapCount += 1
         statusValue.reason = "gallery-stepped"
@@ -465,11 +573,10 @@ public final class FinderWrapMonitor {
         return true
     }
 
-    /// Writes a whole selected range for Shift+arrow wrapping. Unlike a normal
-    /// wrap this keeps every item in the range selected, so the user can keep
-    /// extending across rows; the readback must match the full range before the
-    /// key is consumed.
-    private func performShiftSelection(_ current: GridSnapshot, urls: [URL], active: URL) -> Bool {
+    /// Writes a selection and confirms it, falling back to per-item flags when
+    /// the provider ignores the selected-children collection. Shared by gallery
+    /// stepping and Shift range extension.
+    private func writeSelection(_ current: GridSnapshot, urls: [URL]) -> Bool {
         var byURL: [URL: BoundGridCell] = [:]
         for cell in current.cells where byURL[cell.url] == nil { byURL[cell.url] = cell }
         let cells = urls.compactMap { byURL[$0] }
@@ -478,35 +585,44 @@ public final class FinderWrapMonitor {
         AX.setTimeout(current.grid, 0.05)
         _ = AXUIElementSetAttributeValue(current.grid, kAXSelectedChildrenAttribute as CFString,
                                          cells.map(\.wrapper) as CFArray)
-        Thread.sleep(forTimeInterval: 0.02)
-        var confirmed = false
         if current.selectedChildrenSupported {
-            let selected = AX.children(current.grid, kAXSelectedChildrenAttribute,
-                                       limit: max(cells.count + 2, 8))
-            confirmed = selected.count == cells.count && cells.allSatisfy { cell in
-                selected.contains { CFEqual($0, cell.wrapper) || CFEqual($0, cell.image) }
+            for _ in 0..<2 {
+                Thread.sleep(forTimeInterval: 0.03)
+                let selected = AX.children(current.grid, kAXSelectedChildrenAttribute,
+                                           limit: max(cells.count + 2, 8))
+                if selected.count == cells.count {
+                    let ok = cells.allSatisfy { cell in
+                        selected.contains { CFEqual($0, cell.wrapper) || CFEqual($0, cell.image) }
+                    }
+                    if ok { return true }
+                }
             }
         }
-        if !confirmed {
-            // Providers that ignore the collection write get the range written
-            // item by item; every visible cell is explicitly on or off.
-            let wanted = Set(urls)
-            for cell in current.cells {
-                _ = AXUIElementSetAttributeValue(cell.image, kAXSelectedAttribute as CFString,
-                                                 wanted.contains(cell.url) ? kCFBooleanTrue : kCFBooleanFalse)
-            }
-            var readback: Set<URL> = []
-            for cell in current.cells where (AX.value(cell.image, kAXSelectedAttribute) as? Bool) == true {
-                readback.insert(cell.url)
-            }
-            confirmed = readback == wanted
-        }
-        guard confirmed else { return false }
 
+        let wanted = Set(urls)
+        for cell in current.cells {
+            _ = AXUIElementSetAttributeValue(cell.image, kAXSelectedAttribute as CFString,
+                                             wanted.contains(cell.url) ? kCFBooleanTrue : kCFBooleanFalse)
+        }
+        var readback: Set<URL> = []
+        for cell in current.cells where (AX.value(cell.image, kAXSelectedAttribute) as? Bool) == true {
+            readback.insert(cell.url)
+        }
+        return readback == wanted
+    }
+
+    /// Writes a whole selected range for Shift+arrow wrapping. Unlike a normal
+    /// wrap this keeps every item in the range selected, so the user can keep
+    /// extending across rows; the readback must match the full range before the
+    /// key is consumed.
+    private func performShiftSelection(_ current: GridSnapshot, urls: [URL], active: URL) -> Bool {
+        guard writeSelection(current, urls: urls) else { return false }
+        var byURL: [URL: BoundGridCell] = [:]
+        for cell in current.cells where byURL[cell.url] == nil { byURL[cell.url] = cell }
         if AX.isSettable(current.grid, kAXFocusedAttribute) {
             _ = AXUIElementSetAttributeValue(current.grid, kAXFocusedAttribute as CFString, kCFBooleanTrue)
         }
-        if let activeCell = byURL[active] {
+        if let activeCell = byURL[active], !isFullyVisible(activeCell, in: current.viewportFrame) {
             scrollToVisible(activeCell.wrapper, children: [activeCell.image])
         }
         lock.lock()
@@ -520,7 +636,10 @@ public final class FinderWrapMonitor {
 
     private func performGridWrap(_ current: GridSnapshot, source: BoundGridCell, target: BoundGridCell) -> Bool {
         let result = commit(current, source: source, target: target)
-        if result == .confirmed {
+        if result == .confirmed, !isFullyVisible(target, in: current.viewportFrame) {
+            // Only reveal when the target is actually off-screen. Scrolling on
+            // every wrap moves every icon frame, which makes the next key in a
+            // fast run fail its frame check and disappear.
             scrollToVisible(target.wrapper, children: [target.image])
         }
         lock.lock()
@@ -738,6 +857,11 @@ public final class FinderWrapMonitor {
         if captureLog.count > 6 { captureLog.removeFirst(captureLog.count - 6) }
     }
 
+    private func isFullyVisible(_ cell: BoundGridCell, in viewport: CGRect) -> Bool {
+        guard let frame = AX.frame(cell.wrapper) ?? AX.frame(cell.image) else { return false }
+        return viewport.insetBy(dx: -4, dy: -4).contains(frame)
+    }
+
     // MARK: - Diagnostics
 
     public func diagnostics(chinese: Bool = true) -> String {
@@ -753,7 +877,7 @@ public final class FinderWrapMonitor {
         lock.unlock()
 
         var lines: [String] = []
-        lines.append("FinderWrap 1.0.10 (rebuild)")
+        lines.append("FinderWrap 1.0.11 (rebuild)")
         lines.append(t("macOS：", "macOS: ") + ProcessInfo.processInfo.operatingSystemVersionString)
         if let finder = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder").first,
            let bundle = finder.bundleURL.flatMap({ Bundle(url: $0) }),
@@ -768,7 +892,8 @@ public final class FinderWrapMonitor {
                      + t("拒绝：", "rejected: ") + "\(status.rejectedCount)  "
                      + t("未确认：", "uncertain: ") + "\(status.uncertainCount)")
         lines.append(t("列表切项：", "List wrap: ") + "\(listWrapEnabled)  "
-                     + t("画廊循环：", "gallery cycle: ") + "\(galleryCycleEnabled)")
+                     + t("画廊循环：", "gallery cycle: ") + "\(galleryCycleEnabled)  "
+                     + t("Shift 扩选：", "shift extend: ") + "\(shiftWrapEnabled)")
         lines.append(t("前台应用：", "Frontmost: ") + "\(NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "?")")
         if let finder = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder").first {
             lines.append(t("Finder AX 结构：", "Finder AX dump:"))

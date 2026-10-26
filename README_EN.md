@@ -10,7 +10,7 @@ Follow the author: [Xiaohongshu](https://www.xiaohongshu.com/user/profile/66a7e7
 
 - **Icon-view row wrapping**: Right on the last item of a row goes to the first item of the next row; Left on the first item returns to the last item of the previous row. The document ends cycle too, so arrows never dead-end.
 - **Broad coverage**: ordinary / search / smart / iCloud folders, grouped icons, rows clipped by the window edge, desktop icons, Quick Look (Finder stays frontmost while the preview owns focus) and multiple selection (anchored on the outermost selected item).
-- **Shift range extension across rows**: hold Shift + Left/Right to keep extending a multi-file selection past a row edge, preserving the whole range. It covers the rows Finder has loaded; at an unloaded scroll edge it stops safely. The document ends stop instead of cycling.
+- **Shift range extension across rows**: hold Shift + Left/Right to keep extending a multi-file selection past a row edge, preserving the whole range. It covers the rows Finder has loaded; at an unloaded scroll edge it stops safely. The document ends stop instead of cycling. It has its own switch under Views; turn it off to keep Finder native.
 - **Gallery end cycling**: the thumbnail strip cycles at both ends. Left/right are fully taken over by the app (read selection → compute target → write selection + focus + scroll), independent of Finder's own keyboard cursor.
 - **List previous/next** (separate switch, off by default): left/right step one row; the end keys are consumed to keep the current selection, so Right never turns into “expand folder”.
 - **No persistent window**: menu-bar only (`LSUIElement`, no Dock icon or main window). Click the status item for the switch, permission state, view options, diagnostics and quit.
@@ -33,7 +33,7 @@ Follow the author: [Xiaohongshu](https://www.xiaohongshu.com/user/profile/66a7e7
 | List view | Left/right previous/next item (separate switch); **endpoints do not cycle** |
 | Column view, rename, search fields | Stay native |
 
-- Current version: **1.0.10 (build 13)**, Apple Silicon (arm64) only, macOS 13+.
+- Current version: **1.0.11 (build 14)**, Apple Silicon (arm64) only, macOS 13+.
 - Intel users stay on 1.0.3. macOS 15 / 27 are not verified on real hardware yet; see [compatibility](docs/compatibility.md).
 
 ## Repository layout
@@ -104,7 +104,7 @@ brew uninstall --cask ygnstudio/ygn/finderwrap # uninstall
 Or download the DMG/ZIP from [Releases](https://github.com/ygnstudio/FinderWrap/releases/latest) and verify it with the matching `.sha256`:
 
 ```sh
-shasum -a 256 -c FinderWrap-1.0.10-b13-fixed-arm64.sha256
+shasum -a 256 -c FinderWrap-1.0.11-b14-fixed-arm64.sha256
 ```
 
 - Requires Apple Silicon (arm64), macOS 13+. 1.0.10 no longer ships a universal build; Intel users stay on 1.0.3.
@@ -160,7 +160,7 @@ Accessibility and Input Monitoring only. Signing keeps the project's fixed self-
 1. A push to `main` runs [CI](.github/workflows/ci.yml): unit tests → arm64 Release → architecture and minimum-system checks → unsigned archive + fixed-signature package (`FinderWrap-fixed-signature-<sha>`).
 2. Download the fixed-signature attachment, verify SHA-256 and `signing-policy.py verify`, then publish a `vX.Y.Z` release with DMG / ZIP / sha256 / signing.json.
 3. Update the Homebrew cask `version`, `sha256` and `depends_on arch/macos`.
-4. The 1.0.10 fixed-signature attachment comes from the CI run for this release commit (see [Releases](https://github.com/ygnstudio/FinderWrap/releases)); macOS 15/27 hardware verification remains a separate item.
+4. The 1.0.11 fixed-signature attachment comes from the CI run for this release commit (see [Releases](https://github.com/ygnstudio/FinderWrap/releases)); macOS 15/27 hardware verification remains a separate item.
 
 ### Homebrew maintenance
 
