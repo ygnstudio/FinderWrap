@@ -19,15 +19,18 @@ case "$mode" in
     *) echo 'Usage: scripts/package.sh [--fixed|--ad-hoc]' >&2; exit 2 ;;
 esac
 [[ $# -le 1 ]] || exit 2
-source_app="$PWD/build/DerivedData/Build/Products/Release/FinderWrap.app"
+source_app="$PWD/build/Products/Release/FinderWrap.app"
 [[ -d "$source_app" ]] || { echo 'Run scripts/build.sh Release first.' >&2; exit 2; }
+python3 scripts/check-minimum-system.py "$source_app"
 version=$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$source_app/Contents/Info.plist")
 build=$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$source_app/Contents/Info.plist")
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 2
 [[ "$build" =~ ^[0-9]+$ ]] || exit 2
 output="$PWD/build/packages"
 mkdir -p "$output"
-name="FinderWrap-$version-b$build-$lane-universal"
+channel=$(/usr/libexec/PlistBuddy -c 'Print FinderWrapChannel' "$source_app/Contents/Info.plist")
+[[ "$channel" == preview-1 ]] || { echo 'Unexpected distribution channel' >&2; exit 2; }
+name="FinderWrap-$version-$channel-b$build-$lane-arm64"
 for extension in dmg zip sha256 signing.json; do
     [[ ! -e "$output/$name.$extension" ]] || { echo "Package already exists: $name.$extension (preserve or move it before rebuilding)." >&2; exit 2; }
 done
@@ -36,13 +39,11 @@ trap 'rm -rf "$stage"' EXIT
 mkdir "$stage/payload"
 /usr/bin/ditto --norsrc --noextattr "$source_app" "$stage/payload/FinderWrap.app"
 architectures=$(/usr/bin/lipo "$stage/payload/FinderWrap.app/Contents/MacOS/FinderWrap" -archs)
-for architecture in arm64 x86_64; do
-    [[ " $architectures " == *" $architecture "* ]] || { echo "Missing $architecture" >&2; exit 2; }
-done
+[[ "$architectures" == arm64 ]] || { echo 'Expected Apple Silicon (arm64) only.' >&2; exit 2; }
 # Ordinary Xcode build products keep debug-map paths even in Release. Strip
 # debug symbols before signing so distribution does not reveal the build host.
 /usr/bin/xcrun strip -S "$stage/payload/FinderWrap.app/Contents/MacOS/FinderWrap"
-sign_args=(--force --sign "$identity" --options runtime --timestamp=none)
+sign_args=(--force --sign "$identity" --options runtime --timestamp=none --entitlements Rebuild/Host/entitlements.plist)
 if [[ "$mode" == --fixed ]]; then
     sign_args+=(--requirements "=$requirement")
     if [[ -n "${FINDERWRAP_SIGNING_KEYCHAIN:-}" ]]; then

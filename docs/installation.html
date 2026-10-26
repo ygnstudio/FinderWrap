@@ -1,14 +1,1 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>安装 FinderWrap</title>
-<style>html{color-scheme:light dark;font:16px/1.8 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif}body{max-width:720px;margin:64px auto;padding:0 28px}h1{font-size:40px;letter-spacing:-1px;margin-bottom:4px}h2{font-size:22px;margin-top:36px}.note{padding:16px 20px;background:light-dark(#f2f4f7,#242831);border-radius:12px}a{color:light-dark(#185cbe,#85baff)}li{margin:10px 0}code{font-size:.9em}</style>
-<h1>FinderWrap</h1><p>在 Finder 图标视图中，用左右键自然跨行。安装包版本见应用信息和随包的 Signing.json 签名清单。</p>
-<p class="note">Apple Silicon / Intel 通用构建 · 固定自签证书<br>源码按 MIT 许可证公开；未使用 Developer ID 证书，未做苹果公证。</p>
-<h2>安装与开启</h2><ol>
-<li>先退出正在运行的 FinderWrap。将磁盘映像中的 FinderWrap 拖入“应用程序”，再推出磁盘映像。</li>
-<li>若已有预览版，请在原安装位置替换并保留旧版备份；例如原先安装在用户目录的 <code>Applications</code> 中，请继续使用该位置，避免保留两个可运行副本。</li>
-<li>从 Finder 打开安装后的 FinderWrap。若系统阻止未公证应用，请核对来源及 SHA-256，再到“系统设置 → 隐私与安全性”使用系统提供的“仍要打开”。无需关闭 Gatekeeper 或 SIP。</li>
-<li>点击菜单栏的折弯箭头，在“辅助功能”和“输入监控”中允许 FinderWrap，然后开启“左右键自动换行”。升级本地签名版本后，系统可能要求重新确认权限。</li>
-</ol><p>全新安装默认暂停，登录启动默认关闭；升级会保留原有导航偏好。点击面板内“退出”可完全停止监听。</p>
-<h2>怎么用</h2><p>行末按 → 进入下一行首项，行首按 ← 返回上一行末项；首尾不循环。行内移动、上下键、组合键和多选保持 Finder 原生行为。</p><p>目前验证环境为 macOS 26.6.2 / Apple Silicon。最低编译目标 macOS 15；Intel、其他系统和更多显示器配置尚未完成实机验证。</p>
-<h2>支持范围</h2><p>支持布局可确认的普通图标网格与已验证的日期分组。Quick Look、桌面、列表、分栏、自由排列、超过 160 项、屏外目标及不完整布局交给 Finder 处理，不强制滚动。</p><p>若本次选择无法确认，自动换行会暂停，原按键不再重复发送；这一次可能没有完成移动。请先检查选中项，后续按键仍由 Finder 正常处理，可在面板重新启用。</p>
-<h2>隐私与卸载</h2><p>应用没有网络请求、遥测或账号，不保存文件名、路径、输入文本或键盘内容。诊断只含版本、权限状态、计数和耗时。</p><p>卸载前先关闭“登录时启动”并退出 FinderWrap，再将应用移到废纸篓。系统权限记录与偏好不会自动删除。</p>
-<p>© FinderWrap contributors · MIT License</p></html>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FinderWrap 预览版安装</title><style>body{font:17px/1.7 system-ui;max-width:720px;margin:60px auto;padding:0 24px;color:#202124}h1{line-height:1.2}li{margin:12px 0}code{background:#eee;padding:2px 5px}</style><h1>FinderWrap 2.0.0 · 预览版 1</h1><p>仅 Apple Silicon，最低 macOS 13。新核心可以用于普通 Finder 文件夹，不再限定测试目录。</p><ol><li>退出旧 FinderWrap，备份旧应用，再将 FinderWrap.app 放入“应用程序”。</li><li>双击打开。按系统提示完成辅助功能、输入监控和自动化 Finder 三项权限。应用初始暂停，准备好后手动开启“左右键自动换行”。</li><li>若旧包采用临时签名，迁移到固定证书可能需要重新授权。固定签名已沿用现有证书，但此包未经过 Apple 公证；系统阻止打开时，可在确认来源后通过“隐私与安全性”中的系统入口处理。不要关闭 Gatekeeper 或 SIP。</li></ol><p>当前只增强普通图标视图中可确认的可见边界。Quick Look、桌面、屏外跨行和无法确认的分组保持原生行为。跨系统真实输入验收尚未完成。</p><p>暂停、恢复和权限问题会显示在窗口中；运行错误不再自动保存成“用户关闭”。不修改文件内容、不设置登录启动。</p></html>

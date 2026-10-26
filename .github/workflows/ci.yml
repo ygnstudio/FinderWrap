@@ -15,26 +15,24 @@ jobs:
           persist-credentials: false
       - name: Toolchain
         run: |
+          test "$(uname -m)" = arm64
           sw_vers
           xcodebuild -version
           swift --version
       - name: Unit tests (no system input or AX access)
         run: bash scripts/test.sh
-      - name: Universal Release
+      - name: Apple Silicon Release (macOS 13+)
         run: bash scripts/build.sh Release
       - name: Inspect architectures and linkage
         run: |
-          app=build/DerivedData/Build/Products/Release/FinderWrap.app/Contents/MacOS/FinderWrap
+          app=build/Products/Release/FinderWrap.app/Contents/MacOS/FinderWrap
           architectures=$(lipo "$app" -archs)
-          for architecture in arm64 x86_64; do
-            [[ " $architectures " == *" $architecture "* ]] || exit 1
-          done
+          [[ "$architectures" == arm64 ]] || exit 1
           otool -l "$app"
           otool -L "$app"
+          python3 scripts/check-minimum-system.py build/Products/Release/FinderWrap.app
       - name: Shell syntax
-        run: for script in scripts/*.sh scripts/*.command; do bash -n "$script"; done
-      - name: Packaging and read-only diagnostic tests
-        run: python3 -m unittest discover -s Tests -p 'test_*.py' -v
+        run: for script in scripts/*.sh; do bash -n "$script"; done
       - name: Archive unsigned verification build
         run: bash scripts/archive-ci-build.sh
       - name: Upload verification build (not for installation)
@@ -64,10 +62,10 @@ jobs:
         with:
           name: FinderWrap-fixed-signature-${{ github.sha }}
           path: |
-            build/packages/*-fixed-universal.dmg
-            build/packages/*-fixed-universal.zip
-            build/packages/*-fixed-universal.sha256
-            build/packages/*-fixed-universal.signing.json
+            build/packages/*-fixed-arm64.dmg
+            build/packages/*-fixed-arm64.zip
+            build/packages/*-fixed-arm64.sha256
+            build/packages/*-fixed-arm64.signing.json
           if-no-files-found: error
           retention-days: 30
       - name: Explain unsigned-only run

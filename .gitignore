@@ -7,3 +7,7 @@ xcuserdata/
 docs/evidence/local/
 __pycache__/
 *.pyc
+
+# Local recovery snapshots and media exports are not application source.
+.local/
+media/

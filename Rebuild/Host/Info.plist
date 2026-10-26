@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleName</key><string>FinderWrap</string>
+<key>CFBundleDisplayName</key><string>FinderWrap</string>
+<key>CFBundleIdentifier</key><string>dev.finderwrap.finderwrap</string>
+<key>CFBundleExecutable</key><string>FinderWrap</string>
+<key>CFBundlePackageType</key><string>APPL</string>
+<key>CFBundleShortVersionString</key><string>2.0.0</string>
+<key>CFBundleVersion</key><string>200002</string>
+<key>FinderWrapChannel</key><string>preview-1</string>
+<key>CFBundleIconFile</key><string>AppIcon</string>
+<key>LSMinimumSystemVersion</key><string>13.0</string>
+<key>NSHighResolutionCapable</key><true/>
+<key>NSPrincipalClass</key><string>NSApplication</string>
+<key>NSAppleEventsUsageDescription</key><string>读取 Finder 的完整选中项、当前文件夹及视图类型，用于确认左右键换行目标并保护屏外多选。不会修改文件内容。</string>
+</dict></plist>

@@ -2,10 +2,11 @@
 # A deliberately unsigned verification artifact, never an installation package.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+python3 scripts/check-minimum-system.py build/Products/Release/FinderWrap.app
 mkdir -p build/ci
 stage=$(mktemp -d "$PWD/build/ci/stage.XXXXXX")
 trap 'rm -rf "$stage"' EXIT
-/usr/bin/ditto --norsrc --noextattr build/DerivedData/Build/Products/Release/FinderWrap.app "$stage/FinderWrap.app"
+/usr/bin/ditto --norsrc --noextattr build/Products/Release/FinderWrap.app "$stage/FinderWrap.app"
 /usr/bin/xcrun strip -S "$stage/FinderWrap.app/Contents/MacOS/FinderWrap"
 if /usr/bin/codesign --display "$stage/FinderWrap.app" >/dev/null 2>&1; then
     /usr/bin/codesign --remove-signature "$stage/FinderWrap.app"

@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 
 // Original vector geometry; no external artwork, fonts or SF Symbol assets.
-let destination = URL(fileURLWithPath: "FinderWrap/Resources/Assets.xcassets/AppIcon.appiconset")
+let destination = URL(fileURLWithPath: "Resources/Assets.xcassets/AppIcon.appiconset")
 let variants = [(16, 1), (16, 2), (32, 1), (32, 2), (128, 1), (128, 2), (256, 1), (256, 2), (512, 1), (512, 2)]
 var entries: [[String: String]] = []
 for (size, scale) in variants {

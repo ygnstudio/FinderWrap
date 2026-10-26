@@ -38,9 +38,12 @@ def verify(app, value):
         info = plistlib.load(stream)
     if info["CFBundleIdentifier"] != value["bundleIdentifier"]:
         raise ValueError("Package bundle identifier differs from the fixed identity")
+    binary = app / "Contents/MacOS" / info["CFBundleExecutable"]
+    if run("/usr/bin/lipo", "-archs", str(binary)).decode().split() != ["arm64"]:
+        raise ValueError("Distribution requires Apple Silicon (arm64) only")
     req = requirement(value)
     signatures = []
-    for arch in ("arm64", "x86_64"):
+    for arch in ("arm64",):
         run("/usr/bin/codesign", "--verify", "--strict", "--arch", arch, "-R", "=" + req, str(app))
         with tempfile.TemporaryDirectory(prefix="finderwrap-cert-") as directory:
             prefix = str(Path(directory) / "certificate")
