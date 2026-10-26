@@ -103,66 +103,66 @@ struct FinderWrapCandidateApp: App {
     @StateObject private var state = CandidateAppState()
 
     var body: some Scene {
-        WindowGroup("FinderWrap", id: "main") {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Image(systemName: "arrow.turn.down.right").font(.largeTitle)
-                    VStack(alignment: .leading) {
-                        Text("FinderWrap").font(.title2.bold())
-                        Text("1.0.4 · 重做预览").foregroundStyle(.secondary)
-                    }
+        MenuBarExtra {
+            CandidateMenuPanel(state: state)
+        } label: {
+            Image(systemName: "arrow.turn.down.right")
+        }
+        .menuBarExtraStyle(.window)
+    }
+}
+
+/// Everything lives in the menu bar panel; the app has no ordinary window.
+private struct CandidateMenuPanel: View {
+    @ObservedObject var state: CandidateAppState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.turn.down.right").font(.title3)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("FinderWrap").font(.headline)
+                    Text("1.0.4").font(.caption2).foregroundStyle(.secondary)
                 }
-                Toggle("左右键自动换行", isOn: Binding(get: { state.enabled }, set: { _ = state.setEnabled($0) }))
-                    .toggleStyle(.switch)
-                    .disabled(!state.enabled && !state.permissionsReady)
-                Text(state.message).font(.callout).fixedSize(horizontal: false, vertical: true)
-                Text("换行统计：\(state.status.wrapCount) 次 · 布局 \(state.status.rowCount) 行 / \(state.status.itemCount) 个图标")
-                    .font(.caption).foregroundStyle(.secondary)
-                Divider()
-                permissionRow("辅助功能", allowed: state.accessibility) { state.settings("Privacy_Accessibility") }
-                permissionRow("输入监控", allowed: state.inputMonitoring) { state.settings("Privacy_ListenEvent") }
-                Divider()
-                Toggle("列表视图：左右键切上一项/下一项（首尾循环）", isOn: Binding(get: { state.listWrap }, set: { state.setListWrap($0) }))
-                    .toggleStyle(.switch)
-                Toggle("画廊视图：到头循环", isOn: Binding(get: { state.galleryCycle }, set: { state.setGalleryCycle($0) }))
-                    .toggleStyle(.switch)
-                Text("图标视图（含桌面、Quick Look、分组、搜索、多选）跨行换行；画廊到头循环；列表左右键切上一项/下一项（首尾循环暂未支持）；分栏与重命名保持原生。")
-                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                HStack {
-                    Button(state.copied ? "已复制" : "复制诊断信息", action: state.copyDiagnostics)
-                    Spacer()
-                    Button("退出", action: state.quit)
-                }
+                Spacer()
             }
-            .padding(22).frame(width: 420)
+            Toggle("左右键自动换行", isOn: Binding(get: { state.enabled }, set: { _ = state.setEnabled($0) }))
+                .toggleStyle(.switch)
+                .disabled(!state.enabled && !state.permissionsReady)
+            Text(state.message).font(.caption).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Divider()
+            permissionRow("辅助功能", allowed: state.accessibility) { state.settings("Privacy_Accessibility") }
+            permissionRow("输入监控", allowed: state.inputMonitoring) { state.settings("Privacy_ListenEvent") }
+            Divider()
+            Toggle("列表左右键切项", isOn: Binding(get: { state.listWrap }, set: { state.setListWrap($0) }))
+                .toggleStyle(.switch)
+            Toggle("画廊到头循环", isOn: Binding(get: { state.galleryCycle }, set: { state.setGalleryCycle($0) }))
+                .toggleStyle(.switch)
+            Divider()
+            HStack {
+                Button(state.copied ? "已复制" : "复制诊断信息", action: state.copyDiagnostics)
+                Spacer()
+                Button("退出", action: state.quit)
+            }
         }
-        .windowResizability(.contentSize)
-        MenuBarExtra("FinderWrap", systemImage: "arrow.turn.down.right") {
-            CandidateStatusMenu(state: state)
-        }
+        .font(.callout)
+        .padding(14)
+        .frame(width: 300)
     }
 
     private func permissionRow(_ title: String, allowed: Bool, action: @escaping () -> Void) -> some View {
         HStack {
-            Text(title); Spacer()
-            if allowed { Label("已允许", systemImage: "checkmark.circle.fill").foregroundStyle(.green) }
-            else { Button("前往授权", action: action) }
-        }.font(.callout)
-    }
-}
-
-private struct CandidateStatusMenu: View {
-    @ObservedObject var state: CandidateAppState
-    @Environment(\.openWindow) private var openWindow
-    var body: some View {
-        Text(state.message)
-        Toggle("左右键自动换行", isOn: Binding(get: { state.enabled }, set: { _ = state.setEnabled($0) }))
-            .disabled(!state.enabled && !state.permissionsReady)
-        Button("打开 FinderWrap") {
-            openWindow(id: "main")
-            NSApplication.shared.activate(ignoringOtherApps: true)
+            Text(title)
+            Spacer()
+            if allowed {
+                Label("已允许", systemImage: "checkmark.circle.fill")
+                    .labelStyle(.titleAndIcon)
+                    .foregroundStyle(.green)
+            } else {
+                Button("前往授权", action: action).controlSize(.small)
+            }
         }
-        Divider()
-        Button("退出", action: state.quit)
+        .font(.caption)
     }
 }

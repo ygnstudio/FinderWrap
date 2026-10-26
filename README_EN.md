@@ -4,6 +4,8 @@ Row-wrap helper for Finder icon view left/right arrow keys. **Current version: 1
 
 The previous core invalidated the prepared layout on every selection change, so a normal key cadence rarely found the app "ready". 1.0.4 keeps a background grid snapshot, reads the live selection once per key, and uses permissive visible-row geometry.
 
+Menu-bar only: click the status item for the switch, permission state, view options, diagnostics and quit.
+
 ## Behaviour
 
 - Icon views: wrap at row ends, cyclically at the document ends; single and multiple selection.
