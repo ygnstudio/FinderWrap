@@ -159,11 +159,8 @@ private struct CandidateMenuPanel: View {
 
     private var l10n: L10n { L10n(chinese: AppLanguage.resolved(languageRaw).isChinese) }
     private var colorScheme: ColorScheme? {
-        switch AppAppearance.resolved(appearanceRaw).forcedDark {
-        case true: return .dark
-        case false: return .light
-        case nil: return nil
-        }
+        guard let forcedDark = AppAppearance.resolved(appearanceRaw).forcedDark else { return nil }
+        return forcedDark ? .dark : .light
     }
 
     var body: some View {
