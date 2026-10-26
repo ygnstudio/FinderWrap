@@ -597,7 +597,7 @@ public final class FinderWrapMonitor {
         lock.unlock()
 
         var lines: [String] = []
-        lines.append("FinderWrap 1.0.4 (rebuild)")
+        lines.append("FinderWrap 1.0.5 (rebuild)")
         lines.append("macOS: \(ProcessInfo.processInfo.operatingSystemVersionString)")
         lines.append("Enabled: \(enabledNow)")
         lines.append("State: \(status.state.rawValue) reason=\(status.reason)")

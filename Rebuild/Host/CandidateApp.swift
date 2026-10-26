@@ -122,7 +122,7 @@ private struct CandidateMenuPanel: View {
                 Image(systemName: "arrow.turn.down.right").font(.title3)
                 VStack(alignment: .leading, spacing: 1) {
                     Text("FinderWrap").font(.headline)
-                    Text("1.0.4").font(.caption2).foregroundStyle(.secondary)
+                    Text("1.0.5").font(.caption2).foregroundStyle(.secondary)
                 }
                 Spacer()
             }

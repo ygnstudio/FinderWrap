@@ -1,4 +1,4 @@
-# 当前应用核心（1.0.4）
+# 当前应用核心（1.0.5）
 
 - `Sources/FinderBridge/AX.swift`：有界 AX 读取助手。
 - `Sources/FinderBridge/GridModel.swift`：网格模型与纯函数换行判决（含文档首尾循环、画廊单行循环）。
