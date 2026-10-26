@@ -93,6 +93,58 @@ final class WrapEngineTests: XCTestCase {
         XCTAssertEqual(decide(cells, 2, .right), .native)
     }
 
+    private func fixtureURL(_ id: Int) -> URL {
+        URL(fileURLWithPath: "/fixture/\(id)").standardizedFileURL
+    }
+
+    private func shiftDecision(_ ids: [Int], _ direction: HorizontalDirection,
+                               state: ShiftWrapState? = nil) -> ShiftWrapDecision {
+        let selection = ids.count == 1 ? GridSelection.single(fixtureURL(ids[0]))
+                                       : GridSelection.multiple(ids.map(fixtureURL))
+        return WrapEngine().shiftDecide(layout: layout(grid), selection: selection,
+                                        direction: direction, state: state)
+    }
+
+    func testShiftRightAtRowEndStartsRangeAndWraps() {
+        let expected = ShiftWrapState(anchor: fixtureURL(2), active: fixtureURL(3))
+        XCTAssertEqual(shiftDecision([2], .right),
+                       .extend([fixtureURL(2), fixtureURL(3)], expected))
+    }
+
+    func testShiftSessionContinuesAcrossRows() {
+        let state = ShiftWrapState(anchor: fixtureURL(2), active: fixtureURL(3))
+        let expected = ShiftWrapState(anchor: fixtureURL(2), active: fixtureURL(4))
+        XCTAssertEqual(shiftDecision([2, 3], .right, state: state),
+                       .extend([fixtureURL(2), fixtureURL(3), fixtureURL(4)], expected))
+    }
+
+    func testShiftSessionCanShrinkWhenDirectionReverses() {
+        let state = ShiftWrapState(anchor: fixtureURL(2), active: fixtureURL(4))
+        let expected = ShiftWrapState(anchor: fixtureURL(2), active: fixtureURL(3))
+        XCTAssertEqual(shiftDecision([2, 3, 4], .left, state: state),
+                       .extend([fixtureURL(2), fixtureURL(3)], expected))
+    }
+
+    func testShiftLeftAtRowStartExtendsToPreviousRowEnd() {
+        let expected = ShiftWrapState(anchor: fixtureURL(4), active: fixtureURL(2))
+        XCTAssertEqual(shiftDecision([3, 4], .left),
+                       .extend([fixtureURL(2), fixtureURL(3), fixtureURL(4)], expected))
+    }
+
+    func testShiftInRowStaysNativeWithoutASession() {
+        XCTAssertEqual(shiftDecision([1], .right), .native)
+        XCTAssertEqual(shiftDecision([2], .left), .native)
+    }
+
+    func testShiftAtDocumentEndsStaysNative() {
+        XCTAssertEqual(shiftDecision([4], .right), .native)
+        XCTAssertEqual(shiftDecision([1], .left), .native)
+    }
+
+    func testShiftNonContiguousSelectionStaysNative() {
+        XCTAssertEqual(shiftDecision([1, 3], .right), .native)
+    }
+
     func testRowsClusterByVerticalCenterAndSortByX() {
         let cells = [cell(2, x: 70, y: 12), cell(1, x: 10, y: 10), cell(3, x: 10, y: 80)]
         let layout = GridLayout(cells: cells)

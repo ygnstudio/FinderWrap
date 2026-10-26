@@ -239,7 +239,7 @@ private struct CandidateMenuPanel: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text("FinderWrap").font(.system(size: 13, weight: .semibold))
-                Text("1.0.8").font(.caption2).foregroundStyle(.secondary)
+                Text("1.0.9").font(.caption2).foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
         }

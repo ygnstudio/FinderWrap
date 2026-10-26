@@ -57,6 +57,7 @@ public final class FinderWrapMonitor {
     private var listTrace = ""
     private var listWrapEnabled = UserDefaults.standard.bool(forKey: "listWrapEnabled")
     private var galleryCycleEnabled = (UserDefaults.standard.object(forKey: "galleryCycleEnabled") as? Bool) ?? true
+    private var shiftState: ShiftWrapState?
 
     public init() {}
 
@@ -290,14 +291,29 @@ public final class FinderWrapMonitor {
             if let currentTap { CGEvent.tapEnable(tap: currentTap, enable: true) }
             return pass
         }
+        if type == .flagsChanged {
+            if !event.flags.contains(.maskShift) {
+                lock.lock()
+                shiftState = nil
+                lock.unlock()
+            }
+            return pass
+        }
         guard type == .keyDown else { return pass }
         let code = event.getIntegerValueField(.keyboardEventKeycode)
         guard code == 123 || code == 124 else { return pass }
         let blocked: CGEventFlags = [.maskShift, .maskControl, .maskAlternate, .maskCommand, .maskHelp]
-        guard event.flags.intersection(blocked).isEmpty,
+        let modifiers = event.flags.intersection(blocked)
+        guard modifiers.isEmpty || modifiers == .maskShift,
               !CGEventSource.keyState(.combinedSessionState, key: 63),
               !CGEventSource.keyState(.hidSystemState, key: 63) else { return pass }
+        let shiftOnly = modifiers == .maskShift
         let direction: HorizontalDirection = code == 123 ? .left : .right
+        if !shiftOnly {
+            lock.lock()
+            shiftState = nil
+            lock.unlock()
+        }
 
         let frontBundle = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
         let finderFront = frontBundle == "com.apple.finder"
@@ -309,7 +325,15 @@ public final class FinderWrapMonitor {
 
         // List view is an outline, not a grid. When its switch is on, left/right
         // become previous/next item with wraparound; up/down stay native.
-        if handleListKey(direction) { return nil }
+        // Shift+arrow belongs to Finder's native range selection in the list.
+        if shiftOnly {
+            if listIsFocused() {
+                record("shift-list-native")
+                return pass
+            }
+        } else if handleListKey(direction) {
+            return nil
+        }
 
         lock.lock()
         let current = snapshot
@@ -343,7 +367,33 @@ public final class FinderWrapMonitor {
                 && current.layout.rows.count == 1
                 && current.layout.cells.count > 1)
         if galleryLike {
+            if shiftOnly {
+                record("shift-gallery-native")
+                return pass
+            }
             return handleGalleryKey(current, selection: selection, direction: direction) ? nil : pass
+        }
+        if shiftOnly {
+            lock.lock()
+            let state = shiftState
+            lock.unlock()
+            let shiftDecision = engine.shiftDecide(layout: current.layout, selection: selection,
+                                                   direction: direction, state: state)
+            guard case let .extend(urls, nextState) = shiftDecision else {
+                record("shift-native")
+                return pass
+            }
+            guard performShiftSelection(current, urls: urls, active: nextState.active) else {
+                lock.lock()
+                shiftState = nil
+                lock.unlock()
+                record("shift-write-failed")
+                return pass
+            }
+            lock.lock()
+            shiftState = nextState
+            lock.unlock()
+            return nil
         }
         let decision = engine.decide(layout: current.layout, selection: selection, direction: direction)
         guard case let .wrap(from, to) = decision else {
@@ -401,6 +451,59 @@ public final class FinderWrapMonitor {
         return true
     }
 
+    /// Writes a whole selected range for Shift+arrow wrapping. Unlike a normal
+    /// wrap this keeps every item in the range selected, so the user can keep
+    /// extending across rows; the readback must match the full range before the
+    /// key is consumed.
+    private func performShiftSelection(_ current: GridSnapshot, urls: [URL], active: URL) -> Bool {
+        var byURL: [URL: BoundGridCell] = [:]
+        for cell in current.cells where byURL[cell.url] == nil { byURL[cell.url] = cell }
+        let cells = urls.compactMap { byURL[$0] }
+        guard cells.count == urls.count else { return false }
+
+        AX.setTimeout(current.grid, 0.05)
+        _ = AXUIElementSetAttributeValue(current.grid, kAXSelectedChildrenAttribute as CFString,
+                                         cells.map(\.wrapper) as CFArray)
+        Thread.sleep(forTimeInterval: 0.02)
+        var confirmed = false
+        if current.selectedChildrenSupported {
+            let selected = AX.children(current.grid, kAXSelectedChildrenAttribute,
+                                       limit: max(cells.count + 2, 8))
+            confirmed = selected.count == cells.count && cells.allSatisfy { cell in
+                selected.contains { CFEqual($0, cell.wrapper) || CFEqual($0, cell.image) }
+            }
+        }
+        if !confirmed {
+            // Providers that ignore the collection write get the range written
+            // item by item; every visible cell is explicitly on or off.
+            let wanted = Set(urls)
+            for cell in current.cells {
+                _ = AXUIElementSetAttributeValue(cell.image, kAXSelectedAttribute as CFString,
+                                                 wanted.contains(cell.url) ? kCFBooleanTrue : kCFBooleanFalse)
+            }
+            var readback: Set<URL> = []
+            for cell in current.cells where (AX.value(cell.image, kAXSelectedAttribute) as? Bool) == true {
+                readback.insert(cell.url)
+            }
+            confirmed = readback == wanted
+        }
+        guard confirmed else { return false }
+
+        if AX.isSettable(current.grid, kAXFocusedAttribute) {
+            _ = AXUIElementSetAttributeValue(current.grid, kAXFocusedAttribute as CFString, kCFBooleanTrue)
+        }
+        if let activeCell = byURL[active] {
+            scrollToVisible(activeCell.wrapper, children: [activeCell.image])
+        }
+        lock.lock()
+        statusValue.wrapCount += 1
+        statusValue.reason = "shift-wrapped"
+        statusValue.lastDecision = "shift-wrapped"
+        lock.unlock()
+        record("shift-wrap \(urls.count)")
+        return true
+    }
+
     private func performGridWrap(_ current: GridSnapshot, source: BoundGridCell, target: BoundGridCell) -> Bool {
         let result = commit(current, source: source, target: target)
         if result == .confirmed {
@@ -434,6 +537,22 @@ public final class FinderWrapMonitor {
     /// key through would make Finder expand/collapse a folder, which felt random.
     /// Wrapping the ends is not supported (Finder 26 clears the selection when a
     /// non-visible row is written through AX).
+    /// Shift+arrow keeps Finder's own list range selection; only the icon grid
+    /// gets the cross-row extension.
+    private func listIsFocused() -> Bool {
+        guard let finder = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder").first else {
+            return false
+        }
+        let application = AXUIElementCreateApplication(finder.processIdentifier)
+        AX.setTimeout(application, 0.05)
+        guard let focused = AX.element(application, kAXFocusedUIElementAttribute),
+              AX.role(focused) == "AXOutline" else { return false }
+        let identifier = AX.string(focused, kAXIdentifierAttribute)
+        return identifier == "ListView"
+            || identifier?.lowercased().contains("list") == true
+            || (identifier == nil && (AX.frame(focused)?.width ?? 0) > 250)
+    }
+
     private func handleListKey(_ direction: HorizontalDirection) -> Bool {
         lock.lock()
         let enabled = listWrapEnabled
@@ -620,7 +739,7 @@ public final class FinderWrapMonitor {
         lock.unlock()
 
         var lines: [String] = []
-        lines.append("FinderWrap 1.0.8 (rebuild)")
+        lines.append("FinderWrap 1.0.9 (rebuild)")
         lines.append(t("macOS：", "macOS: ") + ProcessInfo.processInfo.operatingSystemVersionString)
         if let finder = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder").first,
            let bundle = finder.bundleURL.flatMap({ Bundle(url: $0) }),

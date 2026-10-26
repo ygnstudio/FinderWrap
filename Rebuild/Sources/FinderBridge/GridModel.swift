@@ -178,3 +178,90 @@ public struct WrapEngine {
         layout.cells.filter { $0.url == url }.count == 1
     }
 }
+
+public struct ShiftWrapState: Equatable, Sendable {
+    public let anchor: URL
+    public let active: URL
+
+    public init(anchor: URL, active: URL) {
+        self.anchor = anchor.standardizedFileURL
+        self.active = active.standardizedFileURL
+    }
+}
+
+public enum ShiftWrapDecision: Equatable {
+    case native
+    case extend([URL], ShiftWrapState)
+}
+
+extension GridSelection {
+    var selectedURLs: [URL] {
+        switch self {
+        case .empty: return []
+        case .single(let url): return [url.standardizedFileURL]
+        case .multiple(let urls): return urls.map(\.standardizedFileURL)
+        }
+    }
+}
+
+extension WrapEngine {
+    /// Shift+arrow range extension across row edges.
+    ///
+    /// Finder keeps the shift anchor internally; this engine only starts a
+    /// session when the selection would otherwise stop at the first/last cell of
+    /// a row, then moves the active end one cell at a time in row-major order
+    /// while the anchor stays put. The returned URLs are the full range to write
+    /// into AXSelectedChildren. A selection that is not contiguous in visual
+    /// order is left native so Finder can normalize it itself.
+    public func shiftDecide(layout: GridLayout,
+                            selection: GridSelection,
+                            direction: HorizontalDirection,
+                            state: ShiftWrapState?) -> ShiftWrapDecision {
+        let flat = layout.rows.flatMap { $0 }
+        let selected = selection.selectedURLs
+        guard !selected.isEmpty else { return .native }
+        var indices: [Int] = []
+        for url in selected {
+            guard let index = flat.firstIndex(where: { $0.url == url }) else { return .native }
+            indices.append(index)
+        }
+        let unique = Set(indices)
+        guard unique.count == indices.count,
+              let low = unique.min(), let high = unique.max(),
+              high - low + 1 == unique.count else { return .native }
+        let rows = rowIndices(layout)
+        let step = direction == .right ? 1 : -1
+
+        if let state,
+           let anchorIndex = flat.firstIndex(where: { $0.url == state.anchor }),
+           let activeIndex = flat.firstIndex(where: { $0.url == state.active }),
+           min(anchorIndex, activeIndex) == low,
+           max(anchorIndex, activeIndex) == high {
+            let next = activeIndex + step
+            guard flat.indices.contains(next) else { return .native }
+            let range = min(anchorIndex, next)...max(anchorIndex, next)
+            return .extend(range.map { flat[$0].url },
+                           ShiftWrapState(anchor: state.anchor, active: flat[next].url))
+        }
+
+        // No session yet: only rescue the press Finder would stop on.
+        switch direction {
+        case .right:
+            guard high + 1 < flat.count, rows[high] != rows[high + 1] else { return .native }
+            return .extend((low...high + 1).map { flat[$0].url },
+                           ShiftWrapState(anchor: flat[low].url, active: flat[high + 1].url))
+        case .left:
+            guard low > 0, rows[low] != rows[low - 1] else { return .native }
+            return .extend((low - 1...high).map { flat[$0].url },
+                           ShiftWrapState(anchor: flat[high].url, active: flat[low - 1].url))
+        }
+    }
+
+    private func rowIndices(_ layout: GridLayout) -> [Int] {
+        var result: [Int] = []
+        for (row, cells) in layout.rows.enumerated() {
+            result.append(contentsOf: Array(repeating: row, count: cells.count))
+        }
+        return result
+    }
+}
