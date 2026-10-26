@@ -19,6 +19,7 @@ Finder 图标视图的左右键换行工具：菜单栏常驻 → 后台读取�
 - **记住开关**：总开关、列表与画廊选项写入偏好，下次启动自动恢复（权限不全时保持关闭）。
 - **界面语言**：跟随系统 / 中文 / English，切换后菜单面板立即生效。
 - **外观**：跟随系统 / 浅色 / 深色，切换后面板与菜单立即生效。
+- **开机启动**：面板“启动”区可注册为登录项；系统要求时到“系统设置 → 通用 → 登录项”允许。卸载前建议先关闭。
 
 ## 覆盖范围
 
@@ -33,7 +34,7 @@ Finder 图标视图的左右键换行工具：菜单栏常驻 → 后台读取�
 | 列表视图 | 左右键切上一项/下一项（独立开关）；**端点不循环** |
 | 分栏、重命名、搜索框等编辑态 | 保持 Finder 原生 |
 
-- 当前版本：**1.0.11（build 14）**，仅 Apple Silicon（arm64），最低 macOS 13。
+- 当前版本：**1.0.12（build 15）**，仅 Apple Silicon（arm64），最低 macOS 13。
 - Intel 用户请继续使用 1.0.3；macOS 15 / 27 尚未实机验收，见 [兼容性](docs/compatibility.md)。
 
 ## 目录结构
@@ -104,7 +105,7 @@ brew uninstall --cask ygnstudio/ygn/finderwrap # 卸载
 或从 [Releases](https://github.com/ygnstudio/FinderWrap/releases/latest) 下载 DMG/ZIP，并用同名 `.sha256` 校验：
 
 ```sh
-shasum -a 256 -c FinderWrap-1.0.11-b14-fixed-arm64.sha256
+shasum -a 256 -c FinderWrap-1.0.12-b15-fixed-arm64.sha256
 ```
 
 - 要求 Apple Silicon（arm64）、macOS 13+；1.0.6 起不再提供 Universal 包，Intel 用户保留 1.0.3。
@@ -160,7 +161,7 @@ bash scripts/package.sh --fixed  # 固定证书已配置时生成 DMG/ZIP
 1. `main` 推送触发 [CI](.github/workflows/ci.yml)：单元测试 → arm64 Release → 架构与最低系统检查 → 未签名归档 + 固定签名安装包（`FinderWrap-fixed-signature-<sha>`）。
 2. 下载固定签名附件，校验 SHA-256 与 `signing-policy.py verify`，生成 `vX.Y.Z` Release（DMG / ZIP / sha256 / signing.json 四个附件）。
 3. Homebrew cask 更新 `version`、`sha256` 与 `depends_on arch/macos`。
-4. 1.0.11 的固定签名附件来自本次发布提交的 CI 运行（见 [Releases](https://github.com/ygnstudio/FinderWrap/releases)）；macOS 15/27 实机验收仍是独立事项。
+4. 1.0.12 的固定签名附件来自本次发布提交的 CI 运行（见 [Releases](https://github.com/ygnstudio/FinderWrap/releases)）；macOS 15/27 实机验收仍是独立事项。
 
 ### Homebrew 维护
 

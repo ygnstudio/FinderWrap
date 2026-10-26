@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import ServiceManagement
 import SwiftUI
 
 @MainActor
@@ -13,6 +14,9 @@ final class CandidateAppState: ObservableObject {
     @Published var listWrap = UserDefaults.standard.bool(forKey: "listWrapEnabled")
     @Published var galleryCycle = (UserDefaults.standard.object(forKey: "galleryCycleEnabled") as? Bool) ?? true
     @Published var shiftWrap = (UserDefaults.standard.object(forKey: "shiftWrapEnabled") as? Bool) ?? true
+    @Published var launchAtLogin = false
+    @Published var launchAtLoginNeedsApproval = false
+    @Published var launchAtLoginError: String?
     private let monitor = FinderWrapMonitor()
     private var timer: Timer?
 
@@ -27,6 +31,7 @@ final class CandidateAppState: ObservableObject {
             guard let self else { return }
             Self.applyStoredAppearance()
             self.refresh()
+            self.refreshLaunchAtLogin()
             if UserDefaults.standard.bool(forKey: "navigationEnabled"), self.permissionsReady {
                 self.enabled = self.setEnabled(true)
             }
@@ -106,7 +111,28 @@ final class CandidateAppState: ObservableObject {
         accessibility = AXIsProcessTrusted()
         inputMonitoring = CGPreflightListenEventAccess()
         status = monitor.status
+        refreshLaunchAtLogin()
         if enabled && !permissionsReady { _ = setEnabled(false) }
+    }
+
+    func refreshLaunchAtLogin() {
+        let serviceStatus = SMAppService.mainApp.status
+        launchAtLogin = serviceStatus == .enabled || serviceStatus == .requiresApproval
+        launchAtLoginNeedsApproval = serviceStatus == .requiresApproval
+    }
+
+    func setLaunchAtLogin(_ value: Bool) {
+        launchAtLoginError = nil
+        do {
+            if value {
+                try SMAppService.mainApp.register()
+            } else {
+                try SMAppService.mainApp.unregister()
+            }
+        } catch {
+            launchAtLoginError = error.localizedDescription
+        }
+        refreshLaunchAtLogin()
     }
 
     func setListWrap(_ value: Bool) {
@@ -134,8 +160,13 @@ final class CandidateAppState: ObservableObject {
     }
 
     func copyDiagnostics() {
+        let l = L10n.current
+        let loginState = launchAtLogin ? l.t("已启用", "on") : l.t("未启用", "off")
+        let approval = launchAtLoginNeedsApproval ? l.t("（等待系统设置批准）", " (waiting for approval)") : ""
+        let diagnostics = monitor.diagnostics(chinese: l.chinese)
+            + "\n" + l.t("开机启动：", "Launch at login: ") + loginState + approval
         NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(monitor.diagnostics(chinese: L10n.current.chinese), forType: .string)
+        NSPasteboard.general.setString(diagnostics, forType: .string)
         copied = true
     }
 
@@ -218,6 +249,26 @@ private struct CandidateMenuPanel: View {
                           help: l.t("按住 Shift 扩选时，到行尾/行首继续跨到相邻行；关闭后保持 Finder 原生，到行尾就停住。",
                                     "Hold Shift and extend across row boundaries; when off, Finder keeps its native behaviour and stops at the row edge."))
             }
+            section(l.t("启动", "Startup")) {
+                toggleRow(l.t("开机启动", "Launch at login"),
+                          icon: "power",
+                          isOn: Binding(get: { state.launchAtLogin }, set: { state.setLaunchAtLogin($0) }),
+                          help: l.t("登录时自动启动 FinderWrap；系统可能要求你在“系统设置 → 通用 → 登录项”中允许。",
+                                    "Start FinderWrap automatically at login. macOS may ask you to allow it under System Settings → General → Login Items."))
+                if state.launchAtLoginNeedsApproval {
+                    Text(l.t("需要在“系统设置 → 通用 → 登录项”中允许 FinderWrap。",
+                             "Allow FinderWrap in System Settings → General → Login Items."))
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                        .padding(.leading, 24)
+                }
+                if let message = state.launchAtLoginError {
+                    Text(message)
+                        .font(.caption2)
+                        .foregroundStyle(.red)
+                        .padding(.leading, 24)
+                }
+            }
             section(l.t("界面", "Interface")) {
                 optionRow(l.t("语言", "Language"), icon: "globe", selection: $languageRaw) {
                     Text(l.t("跟随系统", "System")).tag(AppLanguage.system.rawValue)
@@ -252,7 +303,7 @@ private struct CandidateMenuPanel: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text("FinderWrap").font(.system(size: 13, weight: .semibold))
-                Text("1.0.11").font(.caption2).foregroundStyle(.secondary)
+                Text("1.0.12").font(.caption2).foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
         }
