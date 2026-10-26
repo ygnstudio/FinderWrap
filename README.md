@@ -1,23 +1,23 @@
 # FinderWrap
 
-Finder 图标视图的左右键换行工具。**当前开发版本：2.0.0 预览版 1（200002）**。
+Finder 图标视图的左右键换行工具。**当前版本：1.0.4（build 7），核心已按“常驻布局 + 按键时实时选择”重做。**
 
-新核心已替换 1.x 的全目录扫描。普通文件夹可直接使用，不要求 Synthetic 或命令行测试参数。应用初始暂停，开启前需要辅助功能、输入监控和自动化 Finder 三项权限。
+上一版核心在每次选择变化后作废布局，正常按键速度下经常等不到“就绪”，表现为时灵时不灵。1.0.4 改成：布局在后台按需刷新，按键时只读一次当前选择，几何判定放宽到“可见行”，不再要求整行完整可见或分区端点可证明。
 
 ## 当前行为
 
-- 单选时，在可确认的可见行边界增强左右键；行内仍交给 Finder。
-- 当前文件夹以外的应用、编辑、多选、列表、分栏、画廊保持原生交互。
-- 运行失败显示恢复或暂停原因，保留用户开关意愿。
-- **Quick Look、桌面、屏外目标和无法确认的分组边界暂不增强。** 这不是“所有布局均已支持”的正式稳定版。
+- 图标视图：单/多选都能跨行换行，行尾按右键到下一行第一个，行首按左键回上一行最后一个；整个文档首尾也会循环。
+- 覆盖：普通文件夹、搜索/智能文件夹、按种类分组、桌面图标、Quick Look（Finder 前台但焦点在 Quick Look 窗口时继续驱动底下的图标布局）。
+- 画廊视图：缩略图条到两端循环（可在窗口里关闭）。
+- 列表视图：左右键切换上一项/下一项（独立开关，默认关闭）。**列表首尾循环暂未支持**：Finder 26 对不可见行写选择会清空选中项，Apple Events `select` 与合成点击也无法稳定移动高亮；当前在边界交回 Finder 原生处理，绝不丢选择。
+- 分栏、重命名、搜索框等编辑态保持原生。
+- 开关状态会记住，下次启动自动恢复（权限不全时保持关闭）。
 
-仅 Apple Silicon；构建最低系统为 macOS 13。13/14/15/27 的真实输入兼容性仍待验证，部署目标不代表验收完成。详见 [兼容性](docs/compatibility.md)。
+只需要两项权限：**辅助功能**与**输入监控**。1.0.4 不再需要“自动化 Finder”（Apple Events）权限。
 
 ## 下载与升级
 
-本次预览包由 GitHub Actions 的 main 构建生成，在成功运行的 `FinderWrap-fixed-signature-<commit>` 附件中下载。公开稳定版 Release / Homebrew 仍是 1.0.3；不会把预览包自动推送给稳定版用户。
-
-包沿用仓库固定证书与签名要求，未经过 Apple 公证。若本机旧包是临时签名，首次迁移到固定证书仍可能需要重新授权；固定证书不会消除不同签名身份之间的迁移。不要关闭 Gatekeeper / SIP，也不要运行全局权限重置。见 [安装说明](docs/installation.html) 与 [签名约束](docs/signing.md)。
+公开稳定版 Release / Homebrew 仍是 1.0.3；预览包由 GitHub Actions 的 main 构建生成，在成功运行的 `FinderWrap-fixed-signature-<commit>` 附件中下载。包沿用仓库固定证书与签名要求，未经过 Apple 公证。不要关闭 Gatekeeper / SIP，也不要运行全局权限重置。见 [安装说明](docs/installation.html) 与 [签名约束](docs/signing.md)。
 
 ## 开发
 
@@ -30,8 +30,6 @@ bash scripts/build.sh Release
 bash scripts/package.sh --fixed
 ```
 
-`Rebuild/` 是当前唯一应用核心和 SwiftUI 宿主，`Resources/` 保存图标。旧 Xcode 工程、1.x 核心和过期调试工具已从工作树移除，可通过 Git 历史恢复。测试默认不访问 Finder、不发送真实按键、不改权限。构建输出在 `build/Products/Release`，安装包在 `build/packages`。
+`Rebuild/` 是当前唯一应用核心和 SwiftUI 宿主，`Resources/` 保存图标。测试默认不访问 Finder、不发送真实按键、不改权限。构建输出在 `build/Products/Release`，安装包在 `build/packages`。
 
-应用正常双击启动。开发者仍可使用 `--synthetic-directory /absolute/path/Tests/Fixtures/Synthetic` 约束自动化测试；这是可选的测试保护，不是普通用户的使用限制。
-
-[架构](docs/design.md) · [验收](docs/testing.md) · [MIT](LICENSE)
+[架构](docs/design.md) · [兼容性](docs/compatibility.md) · [验收](docs/testing.md) · [MIT](LICENSE)

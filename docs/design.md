@@ -1,20 +1,20 @@
-# 2.0 预览架构
+# 1.0.4 架构
 
-1.x 在每次方向键时重读全目录，并将运行 failure 保存为关闭偏好。新核心通过三个独立部分处理：官方完整选择、工作线程的可见布局、按键时的局部边界校验。
+三层：事件监听、布局缓存、按键判决。
 
-- Apple Events 只读取 selection、文件 URL、窗口 ID、目录与视图，不通过脚本写选择。窗口后续读取绑定同一 ID。
-- AX 批量读取可见布局。完整选择与窗口前后两次读取一致，且观察器就绪后，才发布短期有效候选。
-- 键鼠、焦点与布局变更使候选失效。采集最多一项在途，旧结果不能在暂停或上下文变化后重新激活。
-- 按键回调验证源/目标与窗口身份，最多执行一次 AX 选择写入；不重放原键。不确定结果隔离会话，等待用户核对。
-- 系统监听超时最多尝试恢复两次。系统停用、权限缺失和未知写入分别显示状态，不等同于用户关闭开关。
-- 源项和目标必须属于当前官方 Finder 文件夹。可选测试目录限制始终保留。
+1. **事件监听**：`FinderWrapMonitor` 在独立线程跑 CGEvent tap，只关心左右方向键（无修饰键、非 Fn）。回调里只做有界 AX 读：焦点窗口/元素、一次 `AXSelectedChildren`、源/目标两帧、一次写入与回读。
+2. **布局缓存**：`GridReader` 在后台队列（350ms 周期）抓取一次可见图标表面，发布不可变快照；选择变化**不**作废布局。快照含 grid 元素、可见项 URL/几何、行聚类结果、是否 Quick Look、grid 的角色/子角色/标识。
+3. **按键判决**：`WrapEngine` 是纯函数 —— 按 Y 聚类成行、按 X 排序，行尾/行首跨行，文档首尾循环；多选时用最外侧选中项定位。画廊视图走单行循环规则。列表视图单独走原生按键（Right→Down、Left→Up）。
 
-AX / Apple Events 没有跨进程原子事务。不要同时使用另一工具通过自动化更改 Finder 选择；通知成功登记也不等于每次变更必然即时送达。
+场景识别：
 
-## 依据与已观察事实
+- 图标视图：焦点向上找到 `AXGrid`，或 `AXList/AXCollectionList`（IconView/GalleryView）。
+- 桌面：没有 AXGrid，也没有焦点窗口；取焦点 AXGroup/AXScrollArea 中能读到图标项的那一层作为表面。
+- Quick Look：Finder 前台、焦点窗口子角色是 `Quick Look`；取 AXWindows 中第一个非 Quick Look 的图标窗口作为被预览布局。
+- 列表：焦点是 `AXOutline` + 标识 `ListView`。
 
-本机 Finder.sdef 的 selection、URL、Finder window、current view 和 target 是脚本接口的直接依据。实际只读验证发现：分组图标的脚本 position 不提供可用几何；AX 可见选择也可能遗漏屏外多选，因此二者不能互相替代。
+安全边界：
 
-[Apple Finder Sync](https://developer.apple.com/library/archive/documentation/General/Conceptual/ExtensibilityPG/Finder.html) 仅提供菜单等扩展入口，不是持续键盘导航接口。[AX 通知](https://developer.apple.com/documentation/applicationservices/1462089-axobserveraddnotification) 需要处理不支持或注册失败。[AX 超时](https://developer.apple.com/documentation/applicationservices/1459345-axuielementsetmessagingtimeout) 不代表写入已取消。
-
-参考过 [Hammerspoon eventtap](https://github.com/Hammerspoon/hammerspoon/blob/master/extensions/eventtap/libeventtap.m)、[Scroll Reverser](https://github.com/pilotmoon/Scroll-Reverser/blob/master/MouseTap.m) 的监听生命周期，以及 [Finer](https://github.com/taka0hn0/Finer) 的布局读取分工；它们不能代替本项目兼容性验收。
+- 写入后必须回读确认；回读失败不重放、不清空已有选择。
+- 列表边界交回 Finder 原生处理：AX 写选择会清空选中项，Apple Events 与合成点击不能稳定移动高亮，因此边界不拦截。
+- 诊断只导出角色、几何、计数与决策原因，不含文件名、路径或按键内容。

@@ -1,125 +1,132 @@
 import AppKit
 import ApplicationServices
-import CoreServices
 import SwiftUI
 
 @MainActor
 final class CandidateAppState: ObservableObject {
     @Published var enabled = false
-    @Published var status = CandidateMonitor.Status()
+    @Published var status = FinderWrapMonitor.Status()
     @Published var accessibility = AXIsProcessTrusted()
     @Published var inputMonitoring = CGPreflightListenEventAccess()
-    @Published var automation = FinderSelectionReader().permissionStatus() == 0
     @Published var copied = false
     @Published var launchIssue: String?
-    let directory: URL?
-    private let invalidArguments: Bool
-    private var monitor: CandidateMonitor?
+    @Published var listWrap = UserDefaults.standard.bool(forKey: "listWrapEnabled")
+    @Published var galleryCycle = (UserDefaults.standard.object(forKey: "galleryCycleEnabled") as? Bool) ?? true
+    private let monitor = FinderWrapMonitor()
     private var timer: Timer?
 
     init() {
-        let args = ProcessInfo.processInfo.arguments
-        if let index = args.firstIndex(of: "--synthetic-directory"), index + 1 < args.count {
-            let url = URL(fileURLWithPath: args[index + 1]).resolvingSymlinksInPath().standardizedFileURL
-            directory = url.path.hasSuffix("/Tests/Fixtures/Synthetic") && FileManager.default.fileExists(atPath: url.path) ? url : nil
-            invalidArguments = directory == nil
-        } else { directory = nil; invalidArguments = args.contains("--synthetic-directory") }
+        monitor.setListWrap(listWrap)
+        monitor.setGalleryCycle(galleryCycle)
         timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in self?.refresh() }
         }
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.refresh()
+            if UserDefaults.standard.bool(forKey: "navigationEnabled"), self.permissionsReady {
+                self.enabled = self.setEnabled(true)
+            }
+        }
     }
 
-    var permissionsReady: Bool { accessibility && inputMonitoring && automation }
+    var permissionsReady: Bool { accessibility && inputMonitoring }
+
     var message: String {
         if let launchIssue { return launchIssue }
-        guard !invalidArguments else { return "测试目录参数无效，请重新正常打开应用" }
         switch status.state {
         case .paused: return "已暂停"
-        case .preparing: return "正在准备 Finder 布局"
-        case .ready: return "Finder 布局已就绪"
-        case .native: return "当前场景保持 Finder 原生操作"
+        case .starting: return "正在准备图标布局"
+        case .ready: return status.message
+        case .native: return status.message
         case .recovering: return "读取暂时失败，正在重新检查"
         case .permissionRequired: return "等待系统权限"
         case .listenerUnavailable: return "监听不可用，请暂停后重新启用"
-        case .uncertainCommit: return "选择结果未确认，请核对后暂停并重新启用"
         }
     }
 
-    func setEnabled(_ value: Bool) {
-        refresh()
-        monitor?.stop(); monitor = nil
+    @discardableResult
+    func setEnabled(_ value: Bool) -> Bool {
         launchIssue = nil
         if value, NSRunningApplication.runningApplications(withBundleIdentifier: "dev.finderwrap.finderwrap")
             .contains(where: { $0.processIdentifier != ProcessInfo.processInfo.processIdentifier }) {
-            enabled = false; status = CandidateMonitor.Status()
+            enabled = false
             launchIssue = "另一个 FinderWrap 正在运行。请先退出它，避免两个版本同时处理按键。"
-            return
+            return false
         }
-        enabled = value && permissionsReady && !invalidArguments
-        if enabled {
-            let candidate = CandidateMonitor(syntheticDirectory: directory)
-            monitor = candidate; candidate.start()
-        } else { status = CandidateMonitor.Status() }
-        // No legacy navigationEnabled preference, login item, or installed app
-        // configuration is read or modified by the candidate.
-    }
-    func refresh() {
-        accessibility = AXIsProcessTrusted(); inputMonitoring = CGPreflightListenEventAccess()
-        automation = FinderSelectionReader().permissionStatus() == 0
-        if let monitor { monitor.updatePermissions(ready: permissionsReady); status = monitor.status }
-    }
-    func requestFinderPermission() {
-        let target = NSAppleEventDescriptor(bundleIdentifier: "com.apple.finder")
-        _ = AEDeterminePermissionToAutomateTarget(target.aeDesc, typeWildCard, typeWildCard, true)
+        let started = monitor.setEnabled(value)
+        enabled = value && started
+        UserDefaults.standard.set(enabled, forKey: "navigationEnabled")
         refresh()
+        return enabled
     }
+
+    func refresh() {
+        accessibility = AXIsProcessTrusted()
+        inputMonitoring = CGPreflightListenEventAccess()
+        status = monitor.status
+        if enabled && !permissionsReady { _ = setEnabled(false) }
+    }
+
+    func setListWrap(_ value: Bool) {
+        listWrap = value
+        UserDefaults.standard.set(value, forKey: "listWrapEnabled")
+        monitor.setListWrap(value)
+    }
+
+    func setGalleryCycle(_ value: Bool) {
+        galleryCycle = value
+        UserDefaults.standard.set(value, forKey: "galleryCycleEnabled")
+        monitor.setGalleryCycle(value)
+    }
+
     func settings(_ suffix: String) {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?" + suffix) { NSWorkspace.shared.open(url) }
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?" + suffix) {
+            NSWorkspace.shared.open(url)
+        }
     }
+
     func copyDiagnostics() {
-        let text = """
-        FinderWrap 2.0.0 Preview 1 (200002)
-        \(ProcessInfo.processInfo.operatingSystemVersionString)
-        Accessibility: \(accessibility)
-        Input monitoring: \(inputMonitoring)
-        Finder automation: \(automation)
-        Requested enabled: \(enabled)
-        Runtime state: \(status.state)
-        Reason: \(status.reason)
-        Confirmed: \(status.confirmed)
-        Uncertain: \(status.uncertain)
-        Maximum callback ms: \(String(format: "%.2f", status.maximumCallbackMS))
-        Last layout capture ms: \(String(format: "%.2f", status.captureMS))
-        Notification registrations: \(status.registeredNotifications)
-        Test directory only: \(directory != nil)
-        No filenames, paths, selected text or keyboard contents included.
-        """
-        NSPasteboard.general.clearContents(); NSPasteboard.general.setString(text, forType: .string); copied = true
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(monitor.diagnostics(), forType: .string)
+        copied = true
     }
-    func quit() { monitor?.stop(); NSApplication.shared.terminate(nil) }
+
+    func quit() {
+        monitor.stop()
+        NSApplication.shared.terminate(nil)
+    }
 }
 
 @main
 struct FinderWrapCandidateApp: App {
     @StateObject private var state = CandidateAppState()
+
     var body: some Scene {
         WindowGroup("FinderWrap", id: "main") {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 16) {
                 HStack {
                     Image(systemName: "arrow.turn.down.right").font(.largeTitle)
                     VStack(alignment: .leading) {
                         Text("FinderWrap").font(.title2.bold())
-                        Text("2.0.0 · 预览版 1").foregroundStyle(.secondary)
+                        Text("1.0.4 · 重做预览").foregroundStyle(.secondary)
                     }
                 }
-                Toggle("左右键自动换行", isOn: Binding(get: { state.enabled }, set: state.setEnabled))
-                    .toggleStyle(.switch).disabled(!state.enabled && !state.permissionsReady)
+                Toggle("左右键自动换行", isOn: Binding(get: { state.enabled }, set: { _ = state.setEnabled($0) }))
+                    .toggleStyle(.switch)
+                    .disabled(!state.enabled && !state.permissionsReady)
                 Text(state.message).font(.callout).fixedSize(horizontal: false, vertical: true)
+                Text("换行统计：\(state.status.wrapCount) 次 · 布局 \(state.status.rowCount) 行 / \(state.status.itemCount) 个图标")
+                    .font(.caption).foregroundStyle(.secondary)
                 Divider()
                 permissionRow("辅助功能", allowed: state.accessibility) { state.settings("Privacy_Accessibility") }
                 permissionRow("输入监控", allowed: state.inputMonitoring) { state.settings("Privacy_ListenEvent") }
-                permissionRow("自动化 Finder", allowed: state.automation, action: state.requestFinderPermission)
-                Text("支持普通文件夹图标视图中可确认的可见跨行。Quick Look、桌面和屏外目标暂时保持原生操作。预览版仍在验证兼容性。")
+                Divider()
+                Toggle("列表视图：左右键切上一项/下一项（首尾循环）", isOn: Binding(get: { state.listWrap }, set: { state.setListWrap($0) }))
+                    .toggleStyle(.switch)
+                Toggle("画廊视图：到头循环", isOn: Binding(get: { state.galleryCycle }, set: { state.setGalleryCycle($0) }))
+                    .toggleStyle(.switch)
+                Text("图标视图（含桌面、Quick Look、分组、搜索、多选）跨行换行；画廊到头循环；列表左右键切上一项/下一项（首尾循环暂未支持）；分栏与重命名保持原生。")
                     .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 HStack {
                     Button(state.copied ? "已复制" : "复制诊断信息", action: state.copyDiagnostics)
@@ -127,7 +134,7 @@ struct FinderWrapCandidateApp: App {
                     Button("退出", action: state.quit)
                 }
             }
-            .padding(24).frame(width: 400)
+            .padding(22).frame(width: 420)
         }
         .windowResizability(.contentSize)
         MenuBarExtra("FinderWrap", systemImage: "arrow.turn.down.right") {
@@ -149,7 +156,7 @@ private struct CandidateStatusMenu: View {
     @Environment(\.openWindow) private var openWindow
     var body: some View {
         Text(state.message)
-        Toggle("左右键自动换行", isOn: Binding(get: { state.enabled }, set: state.setEnabled))
+        Toggle("左右键自动换行", isOn: Binding(get: { state.enabled }, set: { _ = state.setEnabled($0) }))
             .disabled(!state.enabled && !state.permissionsReady)
         Button("打开 FinderWrap") {
             openWindow(id: "main")
