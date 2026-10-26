@@ -30,6 +30,7 @@ public final class FinderWrapMonitor {
         public var captureMS = 0.0
         public var gridRole = "-"
         public var lastDecision = "none"
+        public var quickLook = false
         public var accessibility = false
         public var inputMonitoring = false
         public var permissionReady: Bool { accessibility && inputMonitoring }
@@ -246,6 +247,7 @@ public final class FinderWrapMonitor {
             statusValue.rowCount = fresh.layout.rows.count
             statusValue.captureMS = elapsed
             statusValue.gridRole = fresh.gridRole
+            statusValue.quickLook = fresh.quickLook
             lock.unlock()
         } catch let failure as GridFailure {
             lock.lock()
@@ -263,6 +265,7 @@ public final class FinderWrapMonitor {
             }
             statusValue.itemCount = 0
             statusValue.rowCount = 0
+            statusValue.quickLook = false
             lock.unlock()
         } catch {
             lock.lock()
@@ -604,7 +607,8 @@ public final class FinderWrapMonitor {
 
     // MARK: - Diagnostics
 
-    public func diagnostics() -> String {
+    public func diagnostics(chinese: Bool = true) -> String {
+        let t: (String, String) -> String = { chinese ? $0 : $1 }
         lock.lock()
         let status = statusValue
         let current = snapshot
@@ -616,47 +620,50 @@ public final class FinderWrapMonitor {
         lock.unlock()
 
         var lines: [String] = []
-        lines.append("FinderWrap 1.0.6 (rebuild)")
-        lines.append("macOS: \(ProcessInfo.processInfo.operatingSystemVersionString)")
+        lines.append("FinderWrap 1.0.7 (rebuild)")
+        lines.append(t("macOS：", "macOS: ") + ProcessInfo.processInfo.operatingSystemVersionString)
         if let finder = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder").first,
            let bundle = finder.bundleURL.flatMap({ Bundle(url: $0) }),
            let version = bundle.infoDictionary?["CFBundleShortVersionString"] as? String {
-            lines.append("Finder: \(version)")
+            lines.append(t("Finder：", "Finder: ") + version)
         }
-        lines.append("Enabled: \(enabledNow)")
-        lines.append("State: \(status.state.rawValue) reason=\(status.reason)")
-        lines.append("Accessibility: \(AXIsProcessTrusted())  Input monitoring: \(CGPreflightListenEventAccess())")
-        lines.append("Wraps: \(status.wrapCount)  rejected: \(status.rejectedCount)  uncertain: \(status.uncertainCount)")
-        lines.append("List wrap: \(listWrapEnabled)  gallery cycle: \(galleryCycleEnabled)")
-        lines.append("Message: \(status.message)")
-        lines.append("Frontmost: \(NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "?")")
+        lines.append(t("已启用：", "Enabled: ") + "\(enabledNow)")
+        lines.append(t("状态：", "State: ") + "\(status.state.rawValue) reason=\(status.reason)")
+        lines.append(t("辅助功能：", "Accessibility: ") + "\(AXIsProcessTrusted())  "
+                     + t("输入监控：", "Input monitoring: ") + "\(CGPreflightListenEventAccess())")
+        lines.append(t("换行：", "Wraps: ") + "\(status.wrapCount)  "
+                     + t("拒绝：", "rejected: ") + "\(status.rejectedCount)  "
+                     + t("未确认：", "uncertain: ") + "\(status.uncertainCount)")
+        lines.append(t("列表切项：", "List wrap: ") + "\(listWrapEnabled)  "
+                     + t("画廊循环：", "gallery cycle: ") + "\(galleryCycleEnabled)")
+        lines.append(t("前台应用：", "Frontmost: ") + "\(NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "?")")
         if let finder = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder").first {
-            lines.append("Finder AX dump:")
+            lines.append(t("Finder AX 结构：", "Finder AX dump:"))
             lines.append(reader.describeFinder(pid: finder.processIdentifier))
         }
         if let current {
-            lines.append("QuickLook: \(current.quickLook)  gallery=\(current.gridIdentifier == "GalleryView")")
-            lines.append("Grid fallback: \(current.usedFallback)")
-            lines.append("Grid role: \(current.gridRole)/\(current.gridSubrole)/\(current.gridIdentifier)  selectedChildren=\(current.selectedChildrenSupported)  cells: \(current.layout.cells.count)  rows: \(current.layout.rows.count)")
-            lines.append("Row widths: \(current.layout.rows.map(\.count).map(String.init).joined(separator: ","))")
-            lines.append("Window frame: \(current.windowFrame)  viewport: \(current.viewportFrame)")
+            lines.append(t("Quick Look：", "QuickLook: ") + "\(current.quickLook)  gallery=\(current.gridIdentifier == "GalleryView")")
+            lines.append(t("结构回退：", "Grid fallback: ") + "\(current.usedFallback)")
+            lines.append(t("网格：", "Grid role: ") + "\(current.gridRole)/\(current.gridSubrole)/\(current.gridIdentifier)  selectedChildren=\(current.selectedChildrenSupported)  cells: \(current.layout.cells.count)  rows: \(current.layout.rows.count)")
+            lines.append(t("每行数量：", "Row widths: ") + current.layout.rows.map(\.count).map(String.init).joined(separator: ","))
+            lines.append(t("窗口 / 视口：", "Window frame: ") + "\(current.windowFrame)  viewport: \(current.viewportFrame)")
             let age = (ProcessInfo.processInfo.systemUptime - current.capturedAt) * 1000
-            lines.append("Capture: \(String(format: "%.0f", age)) ms ago  \(String(format: "%.1f", status.captureMS)) ms")
+            lines.append(t("采集：", "Capture: ") + "\(String(format: "%.0f", age)) ms ago  \(String(format: "%.1f", status.captureMS)) ms")
             switch reader.selection(for: current) {
-            case .single: lines.append("Selection: single")
-            case .multiple(let urls): lines.append("Selection: multiple(\(urls.count))")
-            case .empty: lines.append("Selection: empty")
-            case nil: lines.append("Selection: unavailable")
+            case .single: lines.append(t("选择：单选", "Selection: single"))
+            case .multiple(let urls): lines.append(t("选择：多选", "Selection: multiple") + "(\(urls.count))")
+            case .empty: lines.append(t("选择：空", "Selection: empty"))
+            case nil: lines.append(t("选择：不可读", "Selection: unavailable"))
             }
         } else {
-            lines.append("Grid: none")
+            lines.append(t("网格：无", "Grid: none"))
         }
-        if !log.isEmpty { lines.append("Recent decisions: " + log.joined(separator: " | ")) }
-        if !captures.isEmpty { lines.append("Recent captures: " + captures.joined(separator: " | ")) }
-        if !failure.isEmpty { lines.append("Last capture failure: " + String(failure.prefix(900))) }
-        if !listTraceValue.isEmpty { lines.append("List trace: " + listTraceValue) }
-        lines.append("Frontmost: \(NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "?")")
-        lines.append("No filenames, paths or keyboard contents included.")
+        if !log.isEmpty { lines.append(t("最近决策：", "Recent decisions: ") + log.joined(separator: " | ")) }
+        if !captures.isEmpty { lines.append(t("最近采集：", "Recent captures: ") + captures.joined(separator: " | ")) }
+        if !failure.isEmpty { lines.append(t("最后一次采集失败：", "Last capture failure: ") + String(failure.prefix(900))) }
+        if !listTraceValue.isEmpty { lines.append(t("列表追踪：", "List trace: ") + listTraceValue) }
+        lines.append(t("不包含文件名、路径与按键内容。", "No filenames, paths or keyboard contents included."))
         return lines.joined(separator: "\n")
     }
+
 }
