@@ -33,6 +33,20 @@ final class CandidateAppState: ObservableObject {
 
     var permissionsReady: Bool { accessibility && inputMonitoring }
 
+    /// Colour for the compact state dot next to the master toggle.
+    var statusTint: Color {
+        if launchIssue != nil { return .red }
+        if !permissionsReady { return .orange }
+        switch status.state {
+        case .ready:
+            return enabled ? .green : Color(nsColor: .secondaryLabelColor)
+        case .starting, .recovering, .permissionRequired, .listenerUnavailable:
+            return .orange
+        case .paused, .native:
+            return Color(nsColor: .secondaryLabelColor)
+        }
+    }
+
     /// Localized runtime message; recomputed on every body evaluation so a
     /// language switch applies immediately.
     var message: String {
@@ -47,17 +61,17 @@ final class CandidateAppState: ObservableObject {
             let detail = l.t("\(status.rowCount) 行 · \(status.itemCount) 个图标",
                              "\(status.rowCount) rows · \(status.itemCount) icons")
             if status.quickLook {
-                return l.t("Quick Look：", "Quick Look: ") + detail
+                return l.t("已生效 · Quick Look：", "Active · Quick Look: ") + detail
             }
-            return l.t("已就绪：", "Ready: ") + detail
+            return l.t("已生效：", "Active: ") + detail
         case .native:
             switch status.reason {
             case "not-icon-view":
-                return l.t("当前不是可换行的图标视图", "No wrappable icon grid in this view")
+                return l.t("已开启 · 当前视图保持原生", "On · native in this view")
             case "finder-not-active":
-                return l.t("Finder 不在前台", "Finder is not frontmost")
+                return l.t("已开启 · Finder 不在前台", "On · Finder is not frontmost")
             default:
-                return l.t("当前场景保持原生操作", "Keeping native behaviour in this view")
+                return l.t("已开启 · 当前场景保持原生", "On · native behaviour")
             }
         case .recovering:
             return l.t("读取暂时失败，正在重新检查", "Temporary read failure, retrying")
@@ -165,86 +179,202 @@ private struct CandidateMenuPanel: View {
 
     var body: some View {
         let l = l10n
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: "arrow.turn.down.right").font(.title3)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("FinderWrap").font(.headline)
-                    Text("1.0.7").font(.caption2).foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 16) {
+            header(l)
+            Divider()
+            mainControl(l)
+            section(l.t("权限", "Permissions")) {
+                permissionRow(l.t("辅助功能", "Accessibility"), icon: "hand.raised",
+                              allowed: state.accessibility) {
+                    state.settings("Privacy_Accessibility")
                 }
-                Spacer()
+                permissionRow(l.t("输入监控", "Input Monitoring"), icon: "keyboard",
+                              allowed: state.inputMonitoring) {
+                    state.settings("Privacy_ListenEvent")
+                }
             }
-            Toggle(l.t("左右键自动换行", "Wrap left/right arrows"),
-                   isOn: Binding(get: { state.enabled }, set: { _ = state.setEnabled($0) }))
-                .toggleStyle(.switch)
-                .disabled(!state.enabled && !state.permissionsReady)
-            Text(state.message).font(.caption).foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Divider()
-            permissionRow(l.t("辅助功能", "Accessibility"), allowed: state.accessibility) {
-                state.settings("Privacy_Accessibility")
+            section(l.t("视图", "Views")) {
+                toggleRow(l.t("列表左右键切项", "List: left/right steps"),
+                          icon: "list.bullet.rectangle",
+                          isOn: Binding(get: { state.listWrap }, set: { state.setListWrap($0) }),
+                          help: l.t("左右键在列表视图里切换上一项/下一项；到首尾不循环，也不会展开或折叠文件夹。",
+                                    "Left/right steps through list rows. It stops at the first and last row and never expands or collapses folders."))
+                toggleRow(l.t("画廊到头循环", "Gallery: cycle at ends"),
+                          icon: "rectangle.on.rectangle",
+                          isOn: Binding(get: { state.galleryCycle }, set: { state.setGalleryCycle($0) }),
+                          help: l.t("画廊视图里从第一张继续左键会回到最后一张，从最后一张继续右键会回到第一张。",
+                                    "In Gallery view, left at the first item wraps to the last; right at the last item wraps to the first."))
             }
-            permissionRow(l.t("输入监控", "Input Monitoring"), allowed: state.inputMonitoring) {
-                state.settings("Privacy_ListenEvent")
-            }
-            Divider()
-            Toggle(l.t("列表左右键切项", "List: left/right steps"),
-                   isOn: Binding(get: { state.listWrap }, set: { state.setListWrap($0) }))
-                .toggleStyle(.switch)
-            Toggle(l.t("画廊到头循环", "Gallery: cycle at ends"),
-                   isOn: Binding(get: { state.galleryCycle }, set: { state.setGalleryCycle($0) }))
-                .toggleStyle(.switch)
-            Divider()
-            optionRow(l.t("语言", "Language"), selection: $languageRaw) {
-                Text(l.t("跟随系统", "System")).tag(AppLanguage.system.rawValue)
-                Text("中文").tag(AppLanguage.chinese.rawValue)
-                Text("English").tag(AppLanguage.english.rawValue)
-            }
-            optionRow(l.t("外观", "Appearance"), selection: $appearanceRaw) {
-                Text(l.t("跟随系统", "System")).tag(AppAppearance.system.rawValue)
-                Text(l.t("浅色", "Light")).tag(AppAppearance.light.rawValue)
-                Text(l.t("深色", "Dark")).tag(AppAppearance.dark.rawValue)
+            section(l.t("界面", "Interface")) {
+                optionRow(l.t("语言", "Language"), icon: "globe", selection: $languageRaw) {
+                    Text(l.t("跟随系统", "System")).tag(AppLanguage.system.rawValue)
+                    Text("中文").tag(AppLanguage.chinese.rawValue)
+                    Text("English").tag(AppLanguage.english.rawValue)
+                }
+                optionRow(l.t("外观", "Appearance"), icon: "circle.lefthalf.filled", selection: $appearanceRaw) {
+                    Text(l.t("跟随系统", "System")).tag(AppAppearance.system.rawValue)
+                    Text(l.t("浅色", "Light")).tag(AppAppearance.light.rawValue)
+                    Text(l.t("深色", "Dark")).tag(AppAppearance.dark.rawValue)
+                }
             }
             Divider()
-            HStack {
-                Button(state.copied ? l.t("已复制", "Copied") : l.t("复制诊断信息", "Copy diagnostics"),
-                       action: state.copyDiagnostics)
-                Spacer()
-                Button(l.t("退出", "Quit"), action: state.quit)
-            }
+            footer(l)
         }
-        .font(.callout)
-        .padding(14)
-        .frame(width: 320)
+        .padding(16)
+        .frame(width: 336)
         .preferredColorScheme(colorScheme)
         .onChange(of: appearanceRaw) { _ in CandidateAppState.applyStoredAppearance() }
     }
 
-    private func permissionRow(_ title: String, allowed: Bool, action: @escaping () -> Void) -> some View {
-        HStack {
-            Text(title)
-            Spacer()
-            if allowed {
-                Label(l10n.t("已允许", "Allowed"), systemImage: "checkmark.circle.fill")
-                    .labelStyle(.titleAndIcon)
-                    .foregroundStyle(.green)
-            } else {
-                Button(l10n.t("前往授权", "Grant"), action: action).controlSize(.small)
+    private func header(_ l: L10n) -> some View {
+        HStack(spacing: 10) {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color.accentColor.opacity(0.14))
+                .frame(width: 30, height: 30)
+                .overlay {
+                    Image(systemName: "arrow.turn.down.right")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.tint)
+                }
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("FinderWrap").font(.system(size: 13, weight: .semibold))
+                Text("1.0.8").font(.caption2).foregroundStyle(.secondary)
             }
+            Spacer(minLength: 0)
         }
-        .font(.caption)
     }
 
-    private func optionRow<Content: View>(_ title: String, selection: Binding<String>,
-                                          @ViewBuilder content: () -> Content) -> some View {
-        HStack {
+    private func mainControl(_ l: L10n) -> some View {
+        HStack(alignment: .center, spacing: 8) {
+            Image(systemName: "arrow.left.arrow.right")
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .frame(width: 16)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(l.t("左右键自动换行", "Wrap left/right arrows"))
+                    .font(.system(size: 13, weight: .medium))
+                statusLine(l)
+            }
+            Spacer(minLength: 8)
+            Toggle("", isOn: Binding(get: { state.enabled }, set: { _ = state.setEnabled($0) }))
+                .toggleStyle(.switch)
+                .labelsHidden()
+                .disabled(!state.enabled && !state.permissionsReady)
+                .accessibilityLabel(l.t("左右键自动换行", "Wrap left/right arrows"))
+                .help(l.t("开启后，左右键在图标视图的行尾会换到下一行；关闭时完全保持 Finder 原生行为。",
+                          "When on, arrow keys wrap at row ends in icon views. When off, Finder keeps its native behaviour."))
+        }
+    }
+
+    private func statusLine(_ l: L10n) -> some View {
+        HStack(spacing: 5) {
+            Circle().fill(state.statusTint).frame(width: 5, height: 5)
+                .accessibilityHidden(true)
+            Text(state.message)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
             Text(title)
-            Spacer()
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+            content()
+        }
+    }
+
+    private func permissionRow(_ title: String, icon: String, allowed: Bool,
+                               action: @escaping () -> Void) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .frame(width: 16)
+                .accessibilityHidden(true)
+            Text(title)
+            Spacer(minLength: 8)
+            if allowed {
+                HStack(spacing: 4) {
+                    Image(systemName: "checkmark.circle.fill").font(.system(size: 11))
+                    Text(l10n.t("已允许", "Allowed")).font(.caption)
+                }
+                .foregroundStyle(.green)
+                .accessibilityElement(children: .combine)
+            } else {
+                Button(action: action) {
+                    HStack(spacing: 3) {
+                        Text(l10n.t("前往授权", "Grant"))
+                        Image(systemName: "arrow.up.right").font(.system(size: 9, weight: .semibold))
+                    }
+                }
+                .buttonStyle(.borderless)
+                .font(.caption)
+                .foregroundStyle(.orange)
+                .help(l10n.t("打开系统设置里对应的权限页面。授权后回到这里即可开启换行。",
+                             "Opens the matching System Settings privacy pane. Come back here to turn wrapping on."))
+            }
+        }
+        .font(.callout)
+        .frame(minHeight: 22)
+    }
+
+    private func toggleRow(_ title: String, icon: String, isOn: Binding<Bool>, help: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .frame(width: 16)
+                .accessibilityHidden(true)
+            Text(title).font(.callout)
+            Spacer(minLength: 8)
+            Toggle("", isOn: isOn)
+                .toggleStyle(.switch)
+                .labelsHidden()
+                .accessibilityLabel(Text(title))
+                .help(help)
+        }
+        .frame(minHeight: 22)
+    }
+
+    private func optionRow<Content: View>(_ title: String, icon: String, selection: Binding<String>,
+                                          @ViewBuilder content: () -> Content) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .frame(width: 16)
+                .accessibilityHidden(true)
+            Text(title).font(.callout)
+            Spacer(minLength: 8)
             Picker("", selection: selection) { content() }
                 .labelsHidden()
                 .pickerStyle(.menu)
-                .frame(width: 130)
+                .frame(width: 124)
+                .accessibilityLabel(Text(title))
         }
-        .font(.caption)
+        .frame(minHeight: 24)
+    }
+
+    private func footer(_ l: L10n) -> some View {
+        HStack {
+            Button(action: state.copyDiagnostics) {
+                Label(state.copied ? l.t("已复制", "Copied") : l.t("复制诊断信息", "Copy diagnostics"),
+                      systemImage: state.copied ? "checkmark" : "doc.on.doc")
+                    .font(.caption)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            Spacer()
+            Button(l.t("退出", "Quit"), action: state.quit)
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .keyboardShortcut("q", modifiers: .command)
+        }
     }
 }

@@ -14,7 +14,7 @@ Follow the author: [Xiaohongshu](https://www.xiaohongshu.com/user/profile/66a7e7
 - **List previous/next** (separate switch, off by default): left/right step one row; the end keys are consumed to keep the current selection, so Right never turns into “expand folder”.
 - **No persistent window**: menu-bar only (`LSUIElement`, no Dock icon or main window). Click the status item for the switch, permission state, view options, diagnostics and quit.
 - **Read-only layout + verified writes**: layout reads never mutate Finder; every selection write is verified by a readback, with a per-item `AXSelected` fallback. Keys are never replayed or injected.
-- **Two permissions**: Accessibility and Input Monitoring only. Apple Events automation is no longer needed as of 1.0.7.
+- **Two permissions**: Accessibility and Input Monitoring only. Apple Events automation is no longer needed as of 1.0.8.
 - **Settings remembered**: the main switch and view options persist, so the app restores itself on next launch (it stays off when permissions are missing).
 - **Display language**: System / Chinese / English, applied to the menu panel immediately.
 - **Appearance**: System / Light / Dark, applied to the panel and menus immediately.
@@ -32,7 +32,7 @@ Follow the author: [Xiaohongshu](https://www.xiaohongshu.com/user/profile/66a7e7
 | List view | Left/right previous/next item (separate switch); **endpoints do not cycle** |
 | Column view, rename, search fields | Stay native |
 
-- Current version: **1.0.7 (build 10)**, Apple Silicon (arm64) only, macOS 13+.
+- Current version: **1.0.8 (build 11)**, Apple Silicon (arm64) only, macOS 13+.
 - Intel users stay on 1.0.3. macOS 15 / 27 are not verified on real hardware yet; see [compatibility](docs/compatibility.md).
 
 ## Repository layout
@@ -103,10 +103,10 @@ brew uninstall --cask ygnstudio/ygn/finderwrap # uninstall
 Or download the DMG/ZIP from [Releases](https://github.com/ygnstudio/FinderWrap/releases/latest) and verify it with the matching `.sha256`:
 
 ```sh
-shasum -a 256 -c FinderWrap-1.0.7-b10-fixed-arm64.sha256
+shasum -a 256 -c FinderWrap-1.0.8-b11-fixed-arm64.sha256
 ```
 
-- Requires Apple Silicon (arm64), macOS 13+. 1.0.7 no longer ships a universal build; Intel users stay on 1.0.3.
+- Requires Apple Silicon (arm64), macOS 13+. 1.0.8 no longer ships a universal build; Intel users stay on 1.0.3.
 - Signed with the project's fixed self-signed certificate, not notarized. If the first launch is blocked, verify the download source, then allow it under System Settings → Privacy & Security. Homebrew keeps the system security checks.
 - After the first launch, grant Accessibility and Input Monitoring, then enable “左右键自动换行”. The app is menu-bar only: no Dock icon, no main window.
 
@@ -129,7 +129,7 @@ bash scripts/package.sh --fixed # DMG/ZIP when the fixed certificate is configur
 | macOS | Status |
 |---|---|
 | 26.x | Verified locally (26.6.2 / Finder 26.4) |
-| 15.x | Historical “no response” reports (the old core stopped at window/section guards). 1.0.7 removes those hard guards and adds structural and per-item fallbacks, **not yet re-verified on real hardware** |
+| 15.x | Historical “no response” reports (the old core stopped at window/section guards). 1.0.8 removes those hard guards and adds structural and per-item fallbacks, **not yet re-verified on real hardware** |
 | 27.x | Not tested on real hardware; built with SDK 27, the same fallbacks and diagnostics apply, still needs verification |
 
 On “no response”: click the menu-bar item → “复制诊断信息” (Copy diagnostics) and send the text back. Diagnostics include the macOS/Finder version, permissions, focused element and window roles, grid identifiers, row/cell counts and recent decisions; **no filenames, paths or key contents**. See [compatibility](docs/compatibility.md).
@@ -158,7 +158,7 @@ Accessibility and Input Monitoring only. Signing keeps the project's fixed self-
 1. A push to `main` runs [CI](.github/workflows/ci.yml): unit tests → arm64 Release → architecture and minimum-system checks → unsigned archive + fixed-signature package (`FinderWrap-fixed-signature-<sha>`).
 2. Download the fixed-signature attachment, verify SHA-256 and `signing-policy.py verify`, then publish a `vX.Y.Z` release with DMG / ZIP / sha256 / signing.json.
 3. Update the Homebrew cask `version`, `sha256` and `depends_on arch/macos`.
-4. The 1.0.7 fixed-signature attachment comes from the CI run for this release commit (see [Releases](https://github.com/ygnstudio/FinderWrap/releases)); macOS 15/27 hardware verification remains a separate item.
+4. The 1.0.8 fixed-signature attachment comes from the CI run for this release commit (see [Releases](https://github.com/ygnstudio/FinderWrap/releases)); macOS 15/27 hardware verification remains a separate item.
 
 ### Homebrew maintenance
 

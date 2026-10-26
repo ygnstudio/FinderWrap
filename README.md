@@ -14,7 +14,7 @@ Finder 图标视图的左右键换行工具：菜单栏常驻 → 后台读取�
 - **列表左右切项**（独立开关，默认关闭）：左/右 = 上一项/下一项；端点按键被吞掉、保持原选择，绝不把右键变成“展开文件夹”。
 - **零常驻窗口**：只驻留菜单栏（`LSUIElement`，无 Dock 图标与主窗口）；点图标即可开关、查看权限与状态、复制诊断或退出。
 - **只读 + 写回校验**：布局只读；每次写选择后立即回读，失败时逐项 `AXSelected` 兜底，不确定结果不会重放按键。
-- **两项权限**：只安装辅助功能与输入监控。1.0.7 起不再需要“自动化 Finder”（Apple Events）。
+- **两项权限**：只安装辅助功能与输入监控。1.0.8 起不再需要“自动化 Finder”（Apple Events）。
 - **记住开关**：总开关、列表与画廊选项写入偏好，下次启动自动恢复（权限不全时保持关闭）。
 - **界面语言**：跟随系统 / 中文 / English，切换后菜单面板立即生效。
 - **外观**：跟随系统 / 浅色 / 深色，切换后面板与菜单立即生效。
@@ -32,7 +32,7 @@ Finder 图标视图的左右键换行工具：菜单栏常驻 → 后台读取�
 | 列表视图 | 左右键切上一项/下一项（独立开关）；**端点不循环** |
 | 分栏、重命名、搜索框等编辑态 | 保持 Finder 原生 |
 
-- 当前版本：**1.0.7（build 10）**，仅 Apple Silicon（arm64），最低 macOS 13。
+- 当前版本：**1.0.8（build 11）**，仅 Apple Silicon（arm64），最低 macOS 13。
 - Intel 用户请继续使用 1.0.3；macOS 15 / 27 尚未实机验收，见 [兼容性](docs/compatibility.md)。
 
 ## 目录结构
@@ -103,10 +103,10 @@ brew uninstall --cask ygnstudio/ygn/finderwrap # 卸载
 或从 [Releases](https://github.com/ygnstudio/FinderWrap/releases/latest) 下载 DMG/ZIP，并用同名 `.sha256` 校验：
 
 ```sh
-shasum -a 256 -c FinderWrap-1.0.7-b10-fixed-arm64.sha256
+shasum -a 256 -c FinderWrap-1.0.8-b11-fixed-arm64.sha256
 ```
 
-- 要求 Apple Silicon（arm64）、macOS 13+；1.0.7 不再提供 Universal 包，Intel 用户保留 1.0.3。
+- 要求 Apple Silicon（arm64）、macOS 13+；1.0.8 不再提供 Universal 包，Intel 用户保留 1.0.3。
 - 使用固定自签证书，未做 Apple 公证；首次打开被拦截时，核对来源后到「系统设置 → 隐私与安全性」允许打开。Homebrew 保留系统安全检查。
 - 首次打开后授予辅助功能、输入监控，再开启「左右键自动换行」。应用只驻留菜单栏，无 Dock 图标与主窗口。
 
@@ -129,7 +129,7 @@ bash scripts/package.sh --fixed  # 固定证书已配置时生成 DMG/ZIP
 | macOS | 状态 |
 |---|---|
 | 26.x | 本机实测通过（26.6.2 / Finder 26.4） |
-| 15.x | 历史反馈过“无反应”（旧核心卡在窗口/section 校验）。1.0.7 已移除这些硬校验，增加结构回退与逐项兜底，**尚未实机复验** |
+| 15.x | 历史反馈过“无反应”（旧核心卡在窗口/section 校验）。1.0.8 已移除这些硬校验，增加结构回退与逐项兜底，**尚未实机复验** |
 | 27.x | 未实机；使用 SDK 27 构建，结构回退与诊断同样适用，仍需实机确认 |
 
 出现“无反应”时：点菜单栏图标 →「复制诊断信息」回传。诊断包含 macOS/Finder 版本、权限、焦点与窗口角色、网格标识、行/列数量与最近决策，**不含文件名、路径或按键内容**。详见 [兼容性文档](docs/compatibility.md)。
@@ -158,7 +158,7 @@ bash scripts/package.sh --fixed  # 固定证书已配置时生成 DMG/ZIP
 1. `main` 推送触发 [CI](.github/workflows/ci.yml)：单元测试 → arm64 Release → 架构与最低系统检查 → 未签名归档 + 固定签名安装包（`FinderWrap-fixed-signature-<sha>`）。
 2. 下载固定签名附件，校验 SHA-256 与 `signing-policy.py verify`，生成 `vX.Y.Z` Release（DMG / ZIP / sha256 / signing.json 四个附件）。
 3. Homebrew cask 更新 `version`、`sha256` 与 `depends_on arch/macos`。
-4. 1.0.7 的固定签名附件来自本次发布提交的 CI 运行（见 [Releases](https://github.com/ygnstudio/FinderWrap/releases)）；macOS 15/27 实机验收仍是独立事项。
+4. 1.0.8 的固定签名附件来自本次发布提交的 CI 运行（见 [Releases](https://github.com/ygnstudio/FinderWrap/releases)）；macOS 15/27 实机验收仍是独立事项。
 
 ### Homebrew 维护
 
