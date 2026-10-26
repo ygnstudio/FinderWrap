@@ -1,10 +1,10 @@
-# 1.0.9 架构
+# 1.0.10 架构
 
 三层：事件监听、布局缓存、按键判决。
 
 1. **事件监听**：`FinderWrapMonitor` 在独立线程跑 CGEvent tap，只关心左右方向键（无修饰键或仅 Shift、非 Fn）。回调里只做有界 AX 读：焦点窗口/元素、一次 `AXSelectedChildren`、源/目标两帧、一次写入与回读。
 2. **布局缓存**：`GridReader` 在后台队列（350ms 周期）抓取一次可见图标表面，发布不可变快照；选择变化**不**作废布局。快照含 grid 元素、可见项 URL/几何、行聚类结果、是否 Quick Look、grid 的角色/子角色/标识。
-3. **按键判决**：`WrapEngine` 是纯函数 —— 按 Y 聚类成行、按 X 排序，行尾/行首跨行，文档首尾循环；多选时用最外侧选中项定位。Shift 扩选由 `shiftDecide` 维护锚点/活动端，在行边界把整段范围写回 `AXSelectedChildren`。画廊视图走单行循环规则；列表视图与 Shift+方向键保留 Finder 原生。
+3. **按键判决**：`WrapEngine` 是纯函数 —— 按 Y 聚类成行、按 X 排序，行尾/行首跨行，文档首尾循环；多选时用最外侧选中项定位。Shift 扩选由 `shiftDecide` 维护锚点/活动端，在行边界把整段范围写回 `AXSelectedChildren`；超出 Finder 已加载的行时只读快照找不到目标，此时消费按键并保留选区（交回 native 会移动 Finder 自己的锚点并折叠选区）。画廊视图走单行循环规则；列表视图与 Shift+方向键保留 Finder 原生。
 
 场景识别：
 

@@ -380,8 +380,22 @@ public final class FinderWrapMonitor {
             let shiftDecision = engine.shiftDecide(layout: current.layout, selection: selection,
                                                    direction: direction, state: state)
             guard case let .extend(urls, nextState) = shiftDecision else {
+                if state != nil {
+                    // The range is already longer than Finder's loaded rows.
+                    // Passing a native Shift key now would move Finder's own
+                    // anchor and collapse the selection, so stop cleanly until
+                    // Shift is released instead.
+                    record("shift-limited")
+                    return nil
+                }
                 record("shift-native")
                 return pass
+            }
+            if let state, nextState.anchor != state.anchor {
+                // The visible slice changed (e.g. after scrolling); keep the
+                // existing range intact rather than re-anchoring on it.
+                record("shift-limited")
+                return nil
             }
             guard performShiftSelection(current, urls: urls, active: nextState.active) else {
                 lock.lock()
@@ -739,7 +753,7 @@ public final class FinderWrapMonitor {
         lock.unlock()
 
         var lines: [String] = []
-        lines.append("FinderWrap 1.0.9 (rebuild)")
+        lines.append("FinderWrap 1.0.10 (rebuild)")
         lines.append(t("macOS：", "macOS: ") + ProcessInfo.processInfo.operatingSystemVersionString)
         if let finder = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder").first,
            let bundle = finder.bundleURL.flatMap({ Bundle(url: $0) }),
