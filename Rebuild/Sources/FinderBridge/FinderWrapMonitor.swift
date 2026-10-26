@@ -335,17 +335,10 @@ public final class FinderWrapMonitor {
             return pass
         }
 
-        let decision: WrapDecision
         if current.gridIdentifier == "GalleryView" {
-            lock.lock()
-            let cycle = galleryCycleEnabled
-            lock.unlock()
-            decision = cycle
-                ? engine.cycleWithinRow(layout: current.layout, selection: selection, direction: direction)
-                : .native
-        } else {
-            decision = engine.decide(layout: current.layout, selection: selection, direction: direction)
+            return handleGalleryKey(current, selection: selection, direction: direction) ? nil : pass
         }
+        let decision = engine.decide(layout: current.layout, selection: selection, direction: direction)
         guard case let .wrap(from, to) = decision else {
             record("native")
             return pass
@@ -361,6 +354,44 @@ public final class FinderWrapMonitor {
             return pass
         }
         return performGridWrap(current, source: source, target: target) ? nil : pass
+    }
+
+    /// Finer-style takeover for gallery view: every left/right press is computed
+    /// from the AX selection and written back, so Finder's own keyboard cursor
+    /// never has to agree with the highlight. Writes the selected-children
+    /// collection, then focuses it (Finer's setSelection does the same) and
+    /// reveals the target.
+    private func handleGalleryKey(_ current: GridSnapshot, selection: GridSelection,
+                                  direction: HorizontalDirection) -> Bool {
+        lock.lock()
+        let enabled = galleryCycleEnabled
+        lock.unlock()
+        guard enabled, let row = current.layout.rows.first, row.count > 1,
+              case let .single(selectedURL) = selection,
+              let index = row.firstIndex(where: { $0.url == selectedURL }) else { return false }
+        let targetIndex = (index + (direction == .right ? 1 : -1) + row.count) % row.count
+        guard let target = current.cells.first(where: { $0.url == row[targetIndex].url }) else { return false }
+
+        AX.setTimeout(current.grid, 0.1)
+        _ = AXUIElementSetAttributeValue(current.grid, kAXSelectedChildrenAttribute as CFString, [target.wrapper] as CFArray)
+        Thread.sleep(forTimeInterval: 0.02)
+        let readback = AX.elements(current.grid, kAXSelectedChildrenAttribute)
+        let confirmed = readback.count == 1 && (CFEqual(readback[0], target.wrapper) || CFEqual(readback[0], target.image))
+        guard confirmed else {
+            record("gallery-write-failed idx=\(index)/\(row.count)")
+            return false
+        }
+        if AX.isSettable(current.grid, kAXFocusedAttribute) {
+            _ = AXUIElementSetAttributeValue(current.grid, kAXFocusedAttribute as CFString, kCFBooleanTrue)
+        }
+        scrollToVisible(target.wrapper, children: [target.image])
+        lock.lock()
+        statusValue.wrapCount += 1
+        statusValue.reason = "gallery-stepped"
+        statusValue.lastDecision = "gallery-stepped"
+        lock.unlock()
+        record("gallery-step \(index)->\(targetIndex)/\(row.count)")
+        return true
     }
 
     private func performGridWrap(_ current: GridSnapshot, source: BoundGridCell, target: BoundGridCell) -> Bool {
@@ -391,6 +422,11 @@ public final class FinderWrapMonitor {
     /// Down), and the ends delegate to Home / End. Everything is a native key
     /// press: Finder scrolls and keeps its own selection intact. No AX write can
     /// drop the selection.
+    /// List view: left/right stay a native previous/next row (Up/Down) while the
+    /// option is on. The two document ends are consumed deliberately: passing the
+    /// key through would make Finder expand/collapse a folder, which felt random.
+    /// Wrapping the ends is not supported (Finder 26 clears the selection when a
+    /// non-visible row is written through AX).
     private func handleListKey(_ direction: HorizontalDirection) -> Bool {
         lock.lock()
         let enabled = listWrapEnabled
@@ -401,41 +437,47 @@ public final class FinderWrapMonitor {
         }
         let application = AXUIElementCreateApplication(finder.processIdentifier)
         AX.setTimeout(application, 0.05)
-        guard let focused = AX.element(application, kAXFocusedUIElementAttribute) else { return false }
-        let fields = AX.fields(focused, [kAXRoleAttribute, kAXIdentifierAttribute])
-        guard (fields[kAXRoleAttribute] as? String) == "AXOutline",
-              (fields[kAXIdentifierAttribute] as? String) == "ListView" else { return false }
+        guard let focused = AX.element(application, kAXFocusedUIElementAttribute),
+              AX.role(focused) == "AXOutline",
+              AX.string(focused, kAXIdentifierAttribute) == "ListView" else { return false }
+        AX.setTimeout(focused, 0.2)
 
-        let rows = AX.children(focused, kAXChildrenAttribute, limit: 4000).filter { AX.role($0) == "AXRow" }
-        guard rows.count > 1 else { return false }
-        let selected = AX.elements(focused, kAXSelectedRowsAttribute)
-        guard selected.count == 1, let selectedRow = selected.first,
-              let index = rows.firstIndex(where: { CFEqual($0, selectedRow) }) else {
-            record("list-no-selection")
-            return false
+        var rows = AX.elements(focused, kAXRowsAttribute)
+        if rows.isEmpty {
+            rows = AX.children(focused, kAXChildrenAttribute, limit: 4000).filter { AX.role($0) == "AXRow" }
         }
+        guard rows.count > 1 else { return false }
 
-        let wrapsUp = direction == .right && index + 1 == rows.count
-        let wrapsDown = direction == .left && index == 0
-        if !wrapsUp && !wrapsDown {
-            let key: CGKeyCode = direction == .right ? 125 : 126   // native Down / Up
-            guard postKey(key) else {
-                record("list-key-failed")
-                return true
-            }
-            setListTrace("rows=\(rows.count) index=\(index) key=\(key)")
-            record("list-stepped")
+        var selectedIndex: Int?
+        if let selected = AX.elements(focused, kAXSelectedRowsAttribute).first {
+            selectedIndex = rows.firstIndex(where: { CFEqual($0, selected) })
+        }
+        if selectedIndex == nil {
+            selectedIndex = rows.firstIndex { (AX.value($0, kAXSelectedAttribute) as? Bool) == true }
+        }
+        guard let index = selectedIndex else { return false }
+
+        if direction == .right && index + 1 == rows.count {
+            record("list-end")
             return true
         }
-
-        // Boundary: Finder 26 clears or ignores the selection when a non-visible
-        // list row is written through AX, Apple Events `select` does not move the
-        // highlight, and synthetic clicks were unreliable. Keep the boundary
-        // native (expand/collapse or no-op) and never risk the user's selection.
-        record("list-native-boundary")
-        return false
+        if direction == .left && index == 0 {
+            record("list-start")
+            return true
+        }
+        postNativeKey(direction == .right ? 125 : 126)   // native Down / Up
+        setListTrace("rows=\(rows.count) index=\(index)")
+        record("list-step \(index)")
+        return true
     }
 
+    private func postNativeKey(_ keyCode: CGKeyCode) {
+        guard let source = CGEventSource(stateID: .hidSystemState),
+              let down = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true),
+              let up = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false) else { return }
+        down.post(tap: .cghidEventTap)
+        up.post(tap: .cghidEventTap)
+    }
 
     /// Selection changes do not always scroll the new item into view; ask the
     /// provider to reveal it explicitly after a confirmed write.
@@ -444,17 +486,6 @@ public final class FinderWrapMonitor {
         for child in children {
             if AXUIElementPerformAction(child, "AXScrollToVisible" as CFString) == .success { return }
         }
-    }
-
-    /// Posts a single native key (Home=115, End=119) so Finder performs its own
-    /// scroll-and-select at list boundaries.
-    private func postKey(_ keyCode: CGKeyCode) -> Bool {
-        guard let source = CGEventSource(stateID: .hidSystemState),
-              let down = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true),
-              let up = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false) else { return false }
-        down.post(tap: .cghidEventTap)
-        up.post(tap: .cghidEventTap)
-        return true
     }
 
     private func setListTrace(_ text: String) {

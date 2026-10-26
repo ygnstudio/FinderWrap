@@ -9,6 +9,8 @@
 场景识别：
 
 - 图标视图：焦点向上找到 `AXGrid`，或 `AXList/AXCollectionList`（IconView/GalleryView）。
+- 画廊视图：每一键都读 AX 选择、按条带顺序取模算目标、写 `AXSelectedChildren`，再设容器焦点并滚动（参考 Finer 的 setSelection）；不依赖 Finder 原生光标。
+- 列表视图：只做原生上一项/下一项（Down/Up）；两个端点吞掉按键，避免 Finder 把右键解释成展开文件夹。
 - 桌面：没有 AXGrid，也没有焦点窗口；取焦点 AXGroup/AXScrollArea 中能读到图标项的那一层作为表面。
 - Quick Look：Finder 前台、焦点窗口子角色是 `Quick Look`；取 AXWindows 中第一个非 Quick Look 的图标窗口作为被预览布局。
 - 列表：焦点是 `AXOutline` + 标识 `ListView`。

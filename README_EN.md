@@ -10,8 +10,8 @@ Menu-bar only: click the status item for the switch, permission state, view opti
 
 - Icon views: wrap at row ends, cyclically at the document ends; single and multiple selection.
 - Covered: ordinary/search/smart folders, grouped icons, desktop icons, Quick Look (Finder stays frontmost while the preview window owns focus).
-- Gallery view: cycles at both ends.
-- List view: left/right step to the previous/next row (separate switch, off by default). **List first/last cycling is not supported yet** — Finder 26 clears the selection when a non-visible row is written through AX.
+- Gallery view: cycles at both ends; keys are taken over Finer-style (read AX selection, compute target, write selection and focus).
+- List view: left/right step to the previous/next row (separate switch, off by default). **List first/last cycling is not supported** — the end keys are consumed so Finder never expands/collapses a folder, and writing an off-screen row clears the selection.
 - Column view, rename and search fields stay native.
 
 Permissions: **Accessibility** and **Input Monitoring** only. Apple Events automation is no longer required.
