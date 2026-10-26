@@ -24,6 +24,9 @@ struct GridSnapshot {
     let gridSubrole: String
     let gridIdentifier: String
     let selectedChildrenSupported: Bool
+    /// True when the surface was found through the structural fallback instead
+    /// of a known AXGrid/IconView signature. Reported in diagnostics only.
+    let usedFallback: Bool
     /// True when the key presses are being made inside Quick Look. The icon
     /// grid underneath is still the real layout; Quick Look owns the focus ring.
     let quickLook: Bool
@@ -53,6 +56,7 @@ struct GridReader {
 
         var grid: AXUIElement?
         var window: AXUIElement?
+        var usedFallback = false
 
         if quickLookWindow == nil {
             if let focusedElement { grid = gridAncestor(of: focusedElement) }
@@ -82,6 +86,30 @@ struct GridReader {
                 }
             }
         }
+        if grid == nil {
+            // macOS 15/27 fallback: do not depend on the exact collection
+            // signature. Any scroll area whose subtree yields icon cells with a
+            // URL and a frame is a usable surface.
+            let candidates = AX.children(application, kAXWindowsAttribute, limit: 12)
+            for candidate in candidates where !Self.isQuickLookWindow(candidate) {
+                for area in scrollAreas(in: candidate, depth: 0) {
+                    if surfaceCells(in: area).count >= 2 {
+                        grid = area
+                        window = candidate
+                        break
+                    }
+                }
+                if grid != nil { break }
+            }
+            if grid == nil, let focusedWindow {
+                for area in scrollAreas(in: focusedWindow, depth: 0) where surfaceCells(in: area).count >= 2 {
+                    grid = area
+                    window = focusedWindow
+                    break
+                }
+            }
+            usedFallback = grid != nil
+        }
         guard let grid else { throw GridFailure(stage: "grid", detail: describe(application)) }
         let windowElement = window ?? ancestor(of: grid) { AX.role($0) == "AXWindow" } ?? application
 
@@ -107,13 +135,36 @@ struct GridReader {
                             gridSubrole: AX.string(grid, kAXSubroleAttribute) ?? "-",
                             gridIdentifier: AX.string(grid, kAXIdentifierAttribute) ?? "-",
                             selectedChildrenSupported: AX.count(grid, kAXSelectedChildrenAttribute) != nil,
+                            usedFallback: usedFallback,
                             quickLook: quickLookWindow != nil,
                             cells: cells, layout: layout,
                             capturedAt: ProcessInfo.processInfo.systemUptime)
     }
 
     static func isQuickLookWindow(_ element: AXUIElement) -> Bool {
-        AX.string(element, kAXSubroleAttribute) == "Quick Look"
+        guard let subrole = AX.string(element, kAXSubroleAttribute)?.lowercased() else { return false }
+        return subrole.contains("quick look") || subrole.contains("quicklook")
+    }
+
+    /// Bounded search for scroll areas so a changed container role does not make
+    /// the whole surface unusable.
+    private func scrollAreas(in root: AXUIElement, depth: Int) -> [AXUIElement] {
+        guard depth <= 5 else { return [] }
+        if AX.role(root) == "AXScrollArea" { return [root] }
+        var found: [AXUIElement] = []
+        for child in AX.children(root, kAXChildrenAttribute, limit: 30) {
+            found.append(contentsOf: scrollAreas(in: child, depth: depth + 1))
+        }
+        return found
+    }
+
+    private func surfaceCells(in container: AXUIElement) -> [BoundGridCell] {
+        var cells: [BoundGridCell] = []
+        var seen = Set<AX.Identity>()
+        for child in AX.children(container, kAXChildrenAttribute, limit: 200) {
+            collect(child, depth: 0, into: &cells, seen: &seen)
+        }
+        return cells
     }
 
     private func visibleChildren(of grid: AXUIElement) -> [AXUIElement] {
@@ -241,7 +292,18 @@ struct GridReader {
     /// AXSelectedChildren, which keeps the key native.
     func selection(for snapshot: GridSnapshot, limit: Int = 128) -> GridSelection? {
         if snapshot.selectedChildrenSupported {
-            return mapSelection(AX.children(snapshot.grid, kAXSelectedChildrenAttribute, limit: limit), in: snapshot)
+            let selected = AX.children(snapshot.grid, kAXSelectedChildrenAttribute, limit: limit)
+            if !selected.isEmpty { return mapSelection(selected, in: snapshot) }
+            // Some systems return an empty selected-children list even though an
+            // item is selected (observed on other view modes). Fall back to the
+            // per-item selected flag before reporting an empty selection.
+            let flagged = snapshot.cells.prefix(40).filter { cell in
+                (AX.value(cell.wrapper, kAXSelectedAttribute) as? Bool) == true
+                    || (CFEqual(cell.wrapper, cell.image) ? false : (AX.value(cell.image, kAXSelectedAttribute) as? Bool) == true)
+            }.map(\.url)
+            if flagged.count == 1 { return .single(flagged[0]) }
+            if flagged.count > 1 { return .multiple(flagged) }
+            return .empty
         }
         // Desktops and other providers expose selection per item instead of a
         // selected-children collection. Scan the (visible) cells; this is only
@@ -364,7 +426,7 @@ struct GridReader {
     private func describeValue(_ raw: CFTypeRef?) -> String {
         guard let raw else { return "nil" }
         let type = CFGetTypeID(raw)
-        if type == CFArrayGetTypeID() { return "array(\(CFArrayGetCount(raw as! CFArray)))" }
+        if type == CFArrayGetTypeID() { let array = raw as! CFArray; return "array(\(CFArrayGetCount(array)))" }
         if type == AXUIElementGetTypeID() { return "element" }
         if type == CFBooleanGetTypeID() { return "boolean" }
         if type == CFStringGetTypeID() { return "string" }

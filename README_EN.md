@@ -1,8 +1,8 @@
 # FinderWrap
 
-Row-wrap helper for Finder icon view left/right arrow keys. **Current version: 1.0.5 (build 8).**
+Row-wrap helper for Finder icon view left/right arrow keys. **Current version: 1.0.6 (build 9).**
 
-The previous core invalidated the prepared layout on every selection change, so a normal key cadence rarely found the app "ready". 1.0.5 keeps a background grid snapshot, reads the live selection once per key, and uses permissive visible-row geometry.
+The previous core invalidated the prepared layout on every selection change, so a normal key cadence rarely found the app "ready". 1.0.6 keeps a background grid snapshot, reads the live selection once per key, and uses permissive visible-row geometry.
 
 Menu-bar only: click the status item for the switch, permission state, view options, diagnostics and quit.
 
@@ -15,6 +15,17 @@ Menu-bar only: click the status item for the switch, permission state, view opti
 - Column view, rename and search fields stay native.
 
 Permissions: **Accessibility** and **Input Monitoring** only. Apple Events automation is no longer required.
+
+## Download
+
+Latest stable release: **1.0.6 (build 9)** — [Releases](https://github.com/ygnstudio/FinderWrap/releases) or Homebrew:
+
+```sh
+brew tap ygnstudio/ygn
+brew install --cask ygnstudio/ygn/finderwrap
+```
+
+1.0.6 ships Apple Silicon (arm64) only, macOS 13+. Intel users stay on 1.0.3.
 
 ## Development
 

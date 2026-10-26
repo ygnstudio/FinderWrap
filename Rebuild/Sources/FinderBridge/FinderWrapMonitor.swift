@@ -335,7 +335,11 @@ public final class FinderWrapMonitor {
             return pass
         }
 
-        if current.gridIdentifier == "GalleryView" {
+        let galleryLike = current.gridIdentifier.lowercased().contains("gallery")
+            || (current.selectedChildrenSupported
+                && current.layout.rows.count == 1
+                && current.layout.cells.count > 1)
+        if galleryLike {
             return handleGalleryKey(current, selection: selection, direction: direction) ? nil : pass
         }
         let decision = engine.decide(layout: current.layout, selection: selection, direction: direction)
@@ -438,8 +442,12 @@ public final class FinderWrapMonitor {
         let application = AXUIElementCreateApplication(finder.processIdentifier)
         AX.setTimeout(application, 0.05)
         guard let focused = AX.element(application, kAXFocusedUIElementAttribute),
-              AX.role(focused) == "AXOutline",
-              AX.string(focused, kAXIdentifierAttribute) == "ListView" else { return false }
+              AX.role(focused) == "AXOutline" else { return false }
+        let identifier = AX.string(focused, kAXIdentifierAttribute)
+        let isMainList = identifier == "ListView"
+            || identifier?.lowercased().contains("list") == true
+            || (identifier == nil && (AX.frame(focused)?.width ?? 0) > 250)
+        guard isMainList else { return false }
         AX.setTimeout(focused, 0.2)
 
         var rows = AX.elements(focused, kAXRowsAttribute)
@@ -497,7 +505,7 @@ public final class FinderWrapMonitor {
     private func valueShape(_ raw: CFTypeRef?) -> String {
         guard let raw else { return "nil" }
         let type = CFGetTypeID(raw)
-        if type == CFArrayGetTypeID() { return "array(\(CFArrayGetCount(raw as! CFArray)))" }
+        if type == CFArrayGetTypeID() { let array = raw as! CFArray; return "array(\(CFArrayGetCount(array)))" }
         if type == AXUIElementGetTypeID() { return "element" }
         return "type=\(type)"
     }
@@ -534,11 +542,22 @@ public final class FinderWrapMonitor {
 
         if snapshot.selectedChildrenSupported {
             let selected = AX.children(snapshot.grid, kAXSelectedChildrenAttribute, limit: 2)
-            let targetSelected = selected.contains { CFEqual($0, target.wrapper) || CFEqual($0, target.image) }
-            let sourceSelected = selected.contains { CFEqual($0, source.wrapper) || CFEqual($0, source.image) }
+            var targetSelected = selected.contains { CFEqual($0, target.wrapper) || CFEqual($0, target.image) }
+            var sourceSelected = selected.contains { CFEqual($0, source.wrapper) || CFEqual($0, source.image) }
+            if selected.isEmpty {
+                // Provider does not refresh selected children: fall back to the
+                // per-item selected flags for the readback as well.
+                targetSelected = (AX.value(target.image, kAXSelectedAttribute) as? Bool) == true
+                sourceSelected = CFEqual(source.image, target.image)
+                    ? targetSelected
+                    : (AX.value(source.image, kAXSelectedAttribute) as? Bool) == true
+                if targetSelected, !sourceSelected { return .confirmed }
+            }
             if targetSelected, !sourceSelected, selected.count == 1 { return .confirmed }
             if sourceSelected, !targetSelected, Self.isHardRejection(collectionError) {
                 // The collection refuses writes; try per-item selection below.
+            } else if selected.isEmpty, !targetSelected, !sourceSelected {
+                // Unknown; try per-item selection below rather than consuming.
             } else {
                 return .uncertain
             }
@@ -546,9 +565,9 @@ public final class FinderWrapMonitor {
             return .uncertain
         }
 
-        // Per-item fallback: some surfaces (the desktop icon group) do not
-        // expose a settable selected-children collection but do expose the
-        // selected state on the icon elements.
+        // Per-item fallback for every surface: some providers (the desktop icon
+        // group, and some macOS 15/27 builds) do not apply a selected-children
+        // write but do expose settable per-item selected state.
         let setTarget = AXUIElementSetAttributeValue(target.image, kAXSelectedAttribute as CFString, kCFBooleanTrue)
         let clearSource = AXUIElementSetAttributeValue(source.image, kAXSelectedAttribute as CFString, kCFBooleanFalse)
         let targetOn = (AX.value(target.image, kAXSelectedAttribute) as? Bool) == true
@@ -597,8 +616,13 @@ public final class FinderWrapMonitor {
         lock.unlock()
 
         var lines: [String] = []
-        lines.append("FinderWrap 1.0.5 (rebuild)")
+        lines.append("FinderWrap 1.0.6 (rebuild)")
         lines.append("macOS: \(ProcessInfo.processInfo.operatingSystemVersionString)")
+        if let finder = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder").first,
+           let bundle = finder.bundleURL.flatMap({ Bundle(url: $0) }),
+           let version = bundle.infoDictionary?["CFBundleShortVersionString"] as? String {
+            lines.append("Finder: \(version)")
+        }
         lines.append("Enabled: \(enabledNow)")
         lines.append("State: \(status.state.rawValue) reason=\(status.reason)")
         lines.append("Accessibility: \(AXIsProcessTrusted())  Input monitoring: \(CGPreflightListenEventAccess())")
@@ -612,6 +636,7 @@ public final class FinderWrapMonitor {
         }
         if let current {
             lines.append("QuickLook: \(current.quickLook)  gallery=\(current.gridIdentifier == "GalleryView")")
+            lines.append("Grid fallback: \(current.usedFallback)")
             lines.append("Grid role: \(current.gridRole)/\(current.gridSubrole)/\(current.gridIdentifier)  selectedChildren=\(current.selectedChildrenSupported)  cells: \(current.layout.cells.count)  rows: \(current.layout.rows.count)")
             lines.append("Row widths: \(current.layout.rows.map(\.count).map(String.init).joined(separator: ","))")
             lines.append("Window frame: \(current.windowFrame)  viewport: \(current.viewportFrame)")

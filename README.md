@@ -1,8 +1,8 @@
 # FinderWrap
 
-Finder 图标视图的左右键换行工具。**当前版本：1.0.5（build 8），核心已按“常驻布局 + 按键时实时选择”重做。**
+Finder 图标视图的左右键换行工具。**当前版本：1.0.6（build 9），核心已按“常驻布局 + 按键时实时选择”重做。**
 
-上一版核心在每次选择变化后作废布局，正常按键速度下经常等不到“就绪”，表现为时灵时不灵。1.0.5 改成：布局在后台按需刷新，按键时只读一次当前选择，几何判定放宽到“可见行”，不再要求整行完整可见或分区端点可证明。
+上一版核心在每次选择变化后作废布局，正常按键速度下经常等不到“就绪”，表现为时灵时不灵。1.0.6 改成：布局在后台按需刷新，按键时只读一次当前选择，几何判定放宽到“可见行”，不再要求整行完整可见或分区端点可证明。
 
 应用只驻留菜单栏：点图标打开面板，开关、权限状态、视图选项、诊断与退出都在面板里。
 
@@ -15,11 +15,18 @@ Finder 图标视图的左右键换行工具。**当前版本：1.0.5（build 8�
 - 分栏、重命名、搜索框等编辑态保持原生。
 - 开关状态会记住，下次启动自动恢复（权限不全时保持关闭）。
 
-只需要两项权限：**辅助功能**与**输入监控**。1.0.5 不再需要“自动化 Finder”（Apple Events）权限。
+只需要两项权限：**辅助功能**与**输入监控**。1.0.6 不再需要“自动化 Finder”（Apple Events）权限。
 
 ## 下载与升级
 
-公开稳定版 Release / Homebrew 仍是 1.0.3；预览包由 GitHub Actions 的 main 构建生成，在成功运行的 `FinderWrap-fixed-signature-<commit>` 附件中下载。包沿用仓库固定证书与签名要求，未经过 Apple 公证。不要关闭 Gatekeeper / SIP，也不要运行全局权限重置。见 [安装说明](docs/installation.html) 与 [签名约束](docs/signing.md)。
+最新正式版为 **1.0.6（build 9）**，可在 [Releases](https://github.com/ygnstudio/FinderWrap/releases) 下载，或通过 Homebrew 安装：
+
+```sh
+brew tap ygnstudio/ygn
+brew install --cask ygnstudio/ygn/finderwrap
+```
+
+1.0.6 起只提供 Apple Silicon（arm64）包，最低 macOS 13；Intel 用户保留在原 1.0.3。包沿用仓库固定证书与签名要求，未经过 Apple 公证。不要关闭 Gatekeeper / SIP，也不要运行全局权限重置。见 [安装说明](docs/installation.html) 与 [签名约束](docs/signing.md)。
 
 ## 开发
 
